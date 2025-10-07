@@ -1,4 +1,4 @@
-#' This is an internal function that is called by the main vizualization workflow function.
+#' This is an internal function that is called by the main visualization workflow function.
 #' It initiates the LongReadQC objects and fills in the files and metadata slots. 
 #' @keywords internal
 #' @noRd
