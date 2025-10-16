@@ -1,23 +1,31 @@
 #' calculates and fills metrics of LongReadQc object 
 #'metrics: 
 #'length 
+#'  distribution
+#'  read lengths
 #'yield
 #'GC content
 #'  per read
-#'  per position  TO DO
+#'  per position          TO DO
 #'  per file    
 #'N content
+#'  per position          TO DO
 #'N50
 #'N90
 #'Q score
-#'  per read average      TODO
+#'  per read average      TO DO
 #'  per position average 
 #'  per file average
+#'  ADD ERROR HANDLING
+#'  USE SYSTIME TO CHECK HOW LONG IT TAKES 
+#'  FIGURE OUT WHAT IS TAKING UP SO MUCH MEMORY IN THE OBJECT
+#'    save only N count if >0
+#'    
 
 QualMat <- function(qc_obj, listofstringsets){
   
   # Initialize summary metrics dataframe
-  summary_df <- data.frame(
+  qc_obj@summary_metrics <- data.frame(
     file = character(),
     yield = numeric(),
     N50 = numeric(),
@@ -62,8 +70,6 @@ QualMat <- function(qc_obj, listofstringsets){
     # dataframe, 4 columns for each base: each has proportion of given base
     # row for each read
     
-    
-    
     #Quality scores
     #per file
     qual_list <- lapply(as.character(quals), function(q) utf8ToInt(q) - 33)
@@ -93,28 +99,33 @@ QualMat <- function(qc_obj, listofstringsets){
     tmp <- cumsum(decreasinglengths)
     N90 <- decreasinglengths[which(tmp >= yield*0.9)[1]]
     
-    
     #fill object
     
     # add metrics 
     qc_obj@metrics[[file_name]] <- list(
-      ppQscore = meanQpb,
+      #lengths
+      #readlength distribution
+      meanppQscore = meanQpb,
+      firstppQQscore = q1Qpb,
+      thirdppQQscore = q3Qpb,
+      medppscore = medQpb,
       Ncount = as.list(setNames(N, paste0("read", seq_along(N)))),
       prGCcontent = as.list(setNames(perReadGC, paste0("read", seq_along(perReadGC))))
     )
     
     # Add summary metrics to dataframe
-    summary_df <- rbind(summary_df, data.frame(
+    
+    summary_df <- data.frame(
       file = file_name,
       yield = yield,
       N50 = N50,
       N90 = N90,
       avgQscore = avgQscore,
       stringsAsFactors = FALSE
-    ))
+    )
+    qc_obj@summary_metrics <- rbind(qc_obj@summary_metrics, summary_df)
   }
+  
   #return the object
   base::return(qc_obj)
 }
-
-
