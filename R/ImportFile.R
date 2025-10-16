@@ -7,7 +7,7 @@
 
 ImportFile <- function(filePaths) {
   results <- lapply(filePaths, function(f) {
-    infile <- fileType(f)
+    infile <- CheckFile(f)
     if (infile %in% c("fastq", "fastq.gz")) {
       Biostrings::readQualityScaledDNAStringSet(f)
     } else {
