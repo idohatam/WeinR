@@ -25,6 +25,11 @@
 #'Change to non loop logic
 #'use profvis on function to figure out data use stuff
 #'use microbenchmark to figure out how different approaches compare
+#'data table instead of dataframe?
+#'try working with asciis instead of numbres?
+#' try preallocating memory for memory
+#' way to work not with metrics but only 
+#' at x position -> take all reads with length greater than x -> calculate quartiles -> next pos
 
 QualMat <- function(qc_obj, stringset, filename){
   
