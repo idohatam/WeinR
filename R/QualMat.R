@@ -52,13 +52,13 @@ QualMat <- function(qc_obj, stringset, filename){
   #)
   
   dna <- Biostrings::DNAStringSet(stringset)
-  quals <- quality(stringset)
+  quals <- Biostrings::quality(stringset)
   seqNames <- names(stringset)
   
   #calculate metrics
   
   #LENGTH
-  lengths <- width(dna)
+  lengths <- Biostrings::width(dna)
   yield <- sum(lengths)
  
   #calculate base frequency
@@ -95,8 +95,8 @@ QualMat <- function(qc_obj, stringset, filename){
   
   # Chunked per-position quality summary for long reads
   chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
-    qual_list <- as(quality(qs_dna), "list")
-    read_lengths <- width(qs_dna)
+    qual_list <- as(qs_dna, "list")
+    read_lengths <- Biostrings::width(qs_dna)
     max_len <- max(read_lengths)
     
     # Prepare list to store results per chunk
@@ -144,7 +144,7 @@ QualMat <- function(qc_obj, stringset, filename){
   }
   
   # Example usage:
-  # q_stats <- chunked_quality_per_position(qs, chunk_size = 5000)
+  q_stats <- chunked_quality_per_position(quals, chunk_size = 5000)
   # head(q_stats)
   
   #calculate summary metrics
@@ -161,13 +161,14 @@ QualMat <- function(qc_obj, stringset, filename){
   #fill object
   
   # add metrics 
-  qc_obj@metrics[[file_name]] <- list(
+  qc_obj@metrics[[filename]] <- list(
     readLengths = lengths,
     meanprQscore = perReadQscore,
-    meanppQscore = meanQpb,
-    firstppQQscore = q1Qpb,
-    thirdppQQscore = q3Qpb,
-    medppscore = medQpb,
+    #meanppQscore = meanQpb,
+    #firstppQQscore = q1Qpb,
+    #thirdppQQscore = q3Qpb,
+    #medppscore = medQpb,
+    perPosQuality = q_stats,
     Ncount = as.list(setNames(N, paste0("read", seq_along(N)))),
     prGCcontent = as.list(setNames(perReadGC, paste0("read", seq_along(perReadGC))))
   )
@@ -175,7 +176,7 @@ QualMat <- function(qc_obj, stringset, filename){
   # Add summary metrics to dataframe
   
   summary_df <- data.frame(
-    file = file_name,
+    file = filename,
     yield = yield,
     N50 = N50,
     N90 = N90,
@@ -187,10 +188,3 @@ QualMat <- function(qc_obj, stringset, filename){
   #return the object
   base::return(qc_obj)
 }
-
-install.packages('profvis')
-library(profvis)
-
-profvisoutput <- profvis({
-  qs_stats <- chunked_quality_per_position(reads)
-})

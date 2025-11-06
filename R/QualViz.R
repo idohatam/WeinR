@@ -6,13 +6,13 @@ QualViz <- function(files){
   
   qc_obj <-.init_qc_object(files)
   
-  for(i in seq_along(qc_obj@files)){
+  for(file in qc_obj@files){
     
     #Import file, return as a list of QualityScaledDNAStringSet
-    qstringset <- ImoportFiles(qc_obj@file$i)
+    qstringset <- ImportFile(file)
     
     #Calculate all the quality stuff
-    qc_obj <- QualMat(qc_obj, qstringset, qc_obj@files$i)
+    qc_obj <- QualMat(qc_obj, qstringset, file)
     
     #Plot quality plots
     #qc_obj <- QualPlot(qc_obj)
