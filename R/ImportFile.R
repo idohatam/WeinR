@@ -32,6 +32,5 @@ ImportFile <- function(filePath) {
     }
   } 
   
-  result <- Output
-  return(result)
+  return(Output)
 }
