@@ -7,84 +7,175 @@ CreateReport <- function(
     code_folding  = c("none","show","hide"),
     theme         = "cosmo",
     highlight     = "tango",
-    includes_css  = NULL,          # if NULL, we’ll write colorblind.css automatically
+    includes_css  = NULL,
     overwrite     = FALSE,
     render_html   = TRUE,
     open_browser  = interactive(),
-    mfa           = NULL           # LongReadQC object
+    mfa           = NULL
 ) {
   stopifnot(!is.null(mfa))
   code_folding <- match.arg(code_folding)
   
-  # Ensure directory
+  path <- normalizePath(path, winslash = "/", mustWork = FALSE)
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
   
-  # Overwrite guard
   if (file.exists(path) && !overwrite) {
     stop("File already exists: ", normalizePath(path),
          "\nSet overwrite = TRUE to replace it.")
   }
   
-  # If no CSS supplied, create an accessible “colorblind-friendly” CSS beside the Rmd
   if (is.null(includes_css)) {
     cb_css <- "
-/* -------- Colorblind-friendly page theme -------- */
+/* ==========================================================
+   Accessible, colorblind-friendly stylesheet (Okabe–Ito)
+   Applied to R Markdown html_document output
+   ========================================================== */
+
+/* -------- Color system (Okabe–Ito) -------- */
 :root{
-  --bg: #F7F8FA;         /* soft neutral page background */
-  --card-bg: #FFFFFF;    /* white cards for contrast */
-  --text: #0B0C0C;       /* near-black text */
-  --muted: #4C4F52;      /* muted body text */
-  --accent: #0072B2;     /* accessible blue (Okabe–Ito) */
-  --accent-2: #E69F00;   /* orange (Okabe–Ito) */
-  --focus: #FFBF47;      /* high-visibility focus */
-  --border: #DADFE6;     /* light border */
+  --bg: #F8FAFB;
+  --surface: #FFFFFF;
+  --text: #0B0C0C;
+  --muted: #4C4F52;
+  --border: #E3E7ED;
+
+  /* Okabe–Ito palette */
+  --c-blue:   #0072B2;
+  --c-orange: #E69F00;
+  --c-verm:   #D55E00;
+  --c-sky:    #56B4E9;
+  --c-green:  #009E73;
+  --c-yellow: #F0E442;
+  --c-pink:   #CC79A7;
+  --c-purple: #7F3C8D;
+
+  --focus: #FFBF47;
 }
 
+/* -------- Global layout & typography -------- */
 html, body {
   background: var(--bg);
   color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji','Segoe UI Emoji';
+  line-height: 1.55;
+  font-size: 16px;
 }
 
-a, a:visited { color: var(--accent); }
-a:hover, a:focus { color: var(--accent-2); outline: none; }
-:focus { outline: 3px solid var(--focus); outline-offset: 2px; }
+body .main-container {
+  max-width: 1100px;
+  background: transparent;
+  padding: 0 16px 32px 16px;
+  margin: 0 auto;
+}
 
-h1, h2, h3, h4 {
-  color: var(--text);
+/* Headings */
+h1.title {
+  font-weight: 800;
   letter-spacing: 0.2px;
+  margin-bottom: 0.25rem;
 }
-
-h1.title { margin-bottom: 0.2rem; }
 .subtitle, .author, .date { color: var(--muted); }
 
-.section-card {
-  background: var(--card-bg);
+/* -------- Header banner -------- */
+.header-banner {
+  background: linear-gradient(135deg, rgba(0,114,178,0.09) 0%, rgba(0,158,115,0.09) 100%);
   border: 1px solid var(--border);
-  border-left: 6px solid var(--accent);
+  border-left: 6px solid var(--c-blue);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin: 18px 0 8px;
+  box-shadow: 0 2px 6px rgba(10, 31, 68, 0.06);
+}
+.header-banner .meta {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: var(--surface);
+}
+
+/* -------- Cards -------- */
+.section-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 6px solid var(--c-blue);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin: 18px 0;
+  box-shadow: 0 2px 6px rgba(10, 31, 68, 0.06);
+}
+.section-card h2, .section-card h3 { margin-top: 0.2rem; }
+
+/* -------- TOC (sticky on wide screens) -------- */
+#TOC {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
   border-radius: 12px;
-  padding: 1.0rem 1.25rem;
-  margin: 1.2rem 0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  padding: 12px !important;
+  box-shadow: 0 1px 3px rgba(10,31,68,0.05);
+}
+@media (min-width: 1100px) {
+  .row-fluid .span3 {
+    position: sticky;
+    top: 14px;
+    height: calc(100vh - 20px);
+    overflow: auto;
+  }
 }
 
-.section-card h2, .section-card h3 {
-  margin-top: 0.2rem;
+/* -------- Tables (DT, base) -------- */
+.table, table.dataTable { width: 100% !important; }
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
 }
+table.dataTable.stripe tbody tr.odd,
+table.dataTable.display tbody tr.odd { background-color: rgba(86,180,233,0.06); }
+table.dataTable.hover tbody tr:hover { background-color: rgba(0,158,115,0.08); }
 
+/* -------- Figures -------- */
+.figure, .rimage img, img {
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+.caption, figcaption { color: var(--muted); }
+
+/* -------- Code blocks -------- */
+pre, code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+}
+pre code { border-radius: 10px !important; }
+
+/* -------- Links & focus -------- */
+a, a:visited { color: var(--c-blue); text-decoration: none; }
+a:hover { color: var(--c-green); }
+:focus { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* -------- Horizontal rule -------- */
 hr.section-sep {
   border: none;
   border-top: 1px solid var(--border);
   margin: 1.2rem 0;
 }
 
-.table { width: 100% !important; }
-.dataTables_wrapper .dataTables_filter input {
-  border: 1px solid var(--border);
-  border-radius: 6px; padding: 4px 8px;
-}
-.dataTables_wrapper .dataTables_length select {
-  border: 1px solid var(--border);
-  border-radius: 6px; padding: 4px 8px;
+/* -------- Footer -------- */
+.page-footer {
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.9rem;
+  margin-top: 20px;
 }
 "
 css_path <- file.path(dirname(path), "colorblind.css")
@@ -92,7 +183,6 @@ writeLines(cb_css, css_path)
 includes_css <- "colorblind.css"
   }
 
-# YAML with params (pass S4 object directly)
 yaml <- c(
   "---",
   sprintf('title: "%s"', title),
@@ -105,44 +195,41 @@ yaml <- c(
   sprintf("    theme: %s", theme),
   sprintf("    highlight: %s", highlight),
   sprintf("    code_folding: %s", code_folding),
+  "    df_print: paged",
+  "    self_contained: true",
   if (!is.null(includes_css)) sprintf("    css: %s", includes_css) else NULL,
-  "df_print: paged",
-  "self_contained: true",
   "params:",
   "  mfa: !r NULL",
   "---",
   ""
 )
 
-# Body (LongReadQC-aware) with section “cards”
 body <- c(
   "```{r setup, include=FALSE}",
   "knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)",
+  "knitr::opts_knit$set(root.dir = dirname(knitr::current_input()))",
   "qc <- params$mfa",
-  "stopifnot(!is.null(qc))",
+  "stopifnot(methods::is(qc, 'LongReadQC'))",
   "suppressPackageStartupMessages({",
   "  library(ggplot2)",
   "  library(DT)",
   "  library(gridExtra)",
   "})",
   "",
-  "# Helper to compute layout up to 3 columns",
-  "calc_layout <- function(n, max_cols = 3) {",
-  "  ncol <- min(max_cols, max(1, n))",
-  "  nrow <- ceiling(n / ncol)",
-  "  list(ncol = ncol, nrow = nrow)",
-  "}",
+  "# null-coalescing helper",
+  "`%||%` <- function(a, b) if (!is.null(a)) a else b",
   "```",
   "",
   "<div class='section-card'>",
-  "# MFA Analysis",
-  "",
   "## Overview",
   "```{r}",
-  "cat('Files:', length(qc@files), '\\n')",
-  "cat('Metrics tables:', length(qc@metrics), '\\n')",
-  "cat('Plot bundles:', length(qc@plots), '\\n')",
-  "cat('Summary rows:', NROW(qc@summary_metrics), '\\n')",
+  "cat('Files:          ', length(qc@files), '\\n')",
+  "cat('Metrics bundles:', length(qc@metrics), '\\n')",
+  "cat('Plot bundles:   ', length(qc@plots), '\\n')",
+  "cat('Summary rows:   ', NROW(qc@summary_metrics), '\\n')",
+  "if (length(qc@metadata)) {",
+  "  cat('Metadata keys:  ', paste(names(qc@metadata), collapse = ', '), '\\n')",
+  "}",
   "```",
   "</div>",
   "",
@@ -158,30 +245,10 @@ body <- c(
   "    summ <- summ[, cols, drop = FALSE]",
   "  }",
   "  DT::datatable(summ, options = list(scrollX = TRUE, autoWidth = TRUE),",
-  "                rownames = FALSE, caption = 'Per-file summary metrics')",
+  "                rownames = FALSE, caption = 'Per-file summary metrics',",
+  "                class = 'stripe hover')",
   "} else {",
   "  cat('No summary metrics available.')",
-  "}",
-  "```",
-  "</div>",
-  "",
-  "<hr class='section-sep'/>",
-  "",
-  "<div class='section-card'>",
-  "## Data previews",
-  "```{r}",
-  "files_data <- names(qc@metrics)",
-  "if (is.null(files_data) || length(files_data) == 0) files_data <- as.character(seq_along(qc@metrics))",
-  "for (i in seq_along(qc@metrics)) {",
-  "  f <- files_data[i]",
-  "  cat('--> ', f, '\\n\\n', sep = '')",
-  "  df <- qc@metrics[[i]]",
-  "  if (is.null(df)) {",
-  "    cat('_No metrics table available._\\n\\n')",
-  "  } else {",
-  "    print(utils::head(df))",
-  "    cat('\\n')",
-  "  }",
   "}",
   "```",
   "</div>",
@@ -193,37 +260,40 @@ body <- c(
   "",
   "### Histograms",
   "```{r, fig.width=12, fig.height=4, fig.align='center'}",
-  "hists <- lapply(qc@plots, function(ps) if (!is.null(ps$hist)) ps$hist else NULL)",
+  "hists <- lapply(qc@plots, function(ps) {",
+  "  if (inherits(ps, 'ggplot')) return(ps)",
+  "  if (is.list(ps)) ps[['hist']] %||% ps[['length_hist']] %||% NULL else NULL",
+  "})",
   "hists <- Filter(Negate(is.null), hists)",
   "if (length(hists)) {",
-  "  lay <- calc_layout(length(hists), max_cols = 3)",
-  "  gridExtra::grid.arrange(grobs = hists, ncol = lay$ncol, nrow = lay$nrow)",
+  "  n <- length(hists); ncol <- min(3, n); nrow <- ceiling(n / ncol)",
+  "  gridExtra::grid.arrange(grobs = hists, ncol = ncol, nrow = nrow)",
   "} else {",
-  "  cat('_No histograms available._')",
+  "  cat('No histograms available')",
   "}",
   "```",
   "",
   "### Density plots",
   "```{r, fig.width=12, fig.height=4, fig.align='center'}",
-  "dens <- lapply(qc@plots, function(ps) if (!is.null(ps$density)) ps$density else NULL)",
+  "dens <- lapply(qc@plots, function(ps) if (is.list(ps)) ps[['density']] else NULL)",
   "dens <- Filter(Negate(is.null), dens)",
   "if (length(dens)) {",
-  "  lay <- calc_layout(length(dens), max_cols = 3)",
-  "  gridExtra::grid.arrange(grobs = dens, ncol = lay$ncol, nrow = lay$nrow)",
+  "  n <- length(dens); ncol <- min(3, n); nrow <- ceiling(n / ncol)",
+  "  gridExtra::grid.arrange(grobs = dens, ncol = ncol, nrow = nrow)",
   "} else {",
-  "  cat('_No density plots available._')",
+  "  cat('No density plots available')",
   "}",
   "```",
   "",
   "### Boxplots",
   "```{r, fig.width=12, fig.height=4, fig.align='center'}",
-  "boxes <- lapply(qc@plots, function(ps) if (!is.null(ps$box)) ps$box else NULL)",
+  "boxes <- lapply(qc@plots, function(ps) if (is.list(ps)) ps[['box']] else NULL)",
   "boxes <- Filter(Negate(is.null), boxes)",
   "if (length(boxes)) {",
-  "  lay <- calc_layout(length(boxes), max_cols = 3)",
-  "  gridExtra::grid.arrange(grobs = boxes, ncol = lay$ncol, nrow = lay$nrow)",
+  "  n <- length(boxes); ncol <- min(3, n); nrow <- ceiling(n / ncol)",
+  "  gridExtra::grid.arrange(grobs = boxes, ncol = ncol, nrow = nrow)",
   "} else {",
-  "  cat('_No boxplots available._')",
+  "  cat('No boxplots available.')",
   "}",
   "```",
   "</div>",
@@ -235,14 +305,16 @@ body <- c(
   "```{r}",
   "sessionInfo()",
   "```",
+  "</div>",
+  "",
+  "<div class='page-footer'>",
+  "  Generated with an accessible, colorblind-friendly theme (Okabe–Ito).",
   "</div>"
 )
 
-# Write Rmd
 writeLines(c(yaml, body), con = path)
 message("Wrote: ", normalizePath(path, winslash = "/"))
 
-# Render with S4 object passed via params
 if (isTRUE(render_html)) {
   if (!requireNamespace("rmarkdown", quietly = TRUE)) {
     stop("Package 'rmarkdown' is required to render HTML. Install it via install.packages('rmarkdown').")
@@ -250,9 +322,10 @@ if (isTRUE(render_html)) {
   html_out <- rmarkdown::render(
     path,
     output_format = "html_document",
-    params = list(mfa = mfa),
-    envir = new.env(parent = globalenv()),
-    quiet = TRUE
+    params        = list(mfa = mfa),
+    knit_root_dir = dirname(path),
+    envir         = new.env(parent = globalenv()),
+    quiet         = TRUE
   )
   message("Rendered HTML: ", normalizePath(html_out, winslash = "/"))
   if (open_browser) utils::browseURL(html_out)
@@ -260,4 +333,4 @@ if (isTRUE(render_html)) {
 }
 
 invisible(list(rmd = normalizePath(path)))
-}
+} 
