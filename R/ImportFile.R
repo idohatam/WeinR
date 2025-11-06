@@ -14,7 +14,7 @@ ImportFile <- function(filePath) {
       Output <- Biostrings::QualityScaledDNAStringSet(bam$seq, bam$qual)
     }
   
-  result <- list(Output)
+  result <- Output
   names(result) <- filePath
   return(result)
 }
