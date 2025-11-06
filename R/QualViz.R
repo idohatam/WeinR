@@ -6,24 +6,20 @@ QualViz <- function(files){
   
   qc_obj <-.init_qc_object(files)
   
-  #Check files returns a vector with either bam, fastq, or mixed
-  file_type <- FileCheck(files = qc_obj@files)
-  
-  #Import files, returnes them as a list of QualityScaledDNAStringSet
-  
-  qstringsets <- ImoportFiles(files = qc_obj@files, ftype = file_type)
-  
-  #Calc all the quality stuff
-  
-  qc_obj <- QualMat(qc_obj)
-  
-  #Plot quality plots
-  
-  qc_obj <- QualPlot(qc_obj)
+  for(i in seq_along(qc_obj@files)){
+    
+    #Import file, return as a list of QualityScaledDNAStringSet
+    qstringset <- ImoportFiles(qc_obj@file$i)
+    
+    #Calculate all the quality stuff
+    qc_obj <- QualMat(qc_obj, qstringset, qc_obj@files$i)
+    
+    #Plot quality plots
+    #qc_obj <- QualPlot(qc_obj)
+  }
   
   #Report generation
-  
-  ReportFun(qc_obj)
+  #ReportFun(qc_obj)
   
   #Return the LongReadQC object
   base::return(qc_obj)
