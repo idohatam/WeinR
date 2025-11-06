@@ -9,7 +9,7 @@
 #'  per position          TO DO
 #'  per file    
 #'N content
-#'  per position          TO DO
+#'  per position          TO DO? do we even care 
 #'N50
 #'N90
 #'Q score
@@ -22,7 +22,7 @@
 #'  FIGURE OUT WHAT IS TAKING UP SO MUCH MEMORY IN THE OBJECT
 #'    save only N count if >0
 #'
-#'Change to non loop logic
+#'
 #'use profvis on function to figure out data use stuff
 #'use microbenchmark to figure out how different approaches compare
 #'data table instead of dataframe?
@@ -30,6 +30,13 @@
 #' try preallocating memory for memory
 #' way to work not with metrics but only 
 #' at x position -> take all reads with length greater than x -> calculate quartiles -> next pos
+#'add adapter content as metric
+#' Update workflow
+#' -> try to use workflow function
+#' -> generates what needs to be generated
+#' -> for next week having working workflow
+#'run profvis on R terminal 
+
 
 QualMat <- function(qc_obj, stringset, filename){
   
@@ -71,17 +78,8 @@ QualMat <- function(qc_obj, stringset, filename){
   # dataframe, 4 columns for each base: each has proportion of given base
   # row for each read
   
-  #make each sequence an element in a vector -> identify longest string
-  # instead of ha
-  # create another vector <- nchar(vector)
-  unlist vector of strings -> find largest stsring
-  now we have a vector with strings and the longset value
-  vector of nchar for each of those strings <- max value - that
-  another vector with NA repeats
-  combine into a vector will still  
   
   
-    
   #Quality scores
   #per file
   qual_list <- lapply(as.character(quals), function(q) utf8ToInt(q) - 33)
@@ -89,24 +87,66 @@ QualMat <- function(qc_obj, stringset, filename){
   
   #per read
   perReadQscore <- lapply(qual_list, function(q) mean(q))
-                
-  #try to figure out how to get it to work without NAs 
-  #maybe approximate values 
-  #maybe just min and max
-  #why is it double
-  #
-  #per position 
-  # pad shorter seqs with NAs <- this is really slow
-  qual_mat <- do.call(rbind, lapply(qual_list,function(q){
-    c(q,rep(NA, max(lengths)-length(q)))
-  }))
   
-  # Calculate quartiles
-  meanQpb <- apply(qual_mat, 2, mean, na.rm = TRUE)
-  q1Qpb <-  apply(qual_mat, 2, quantile, probs = 0.25, na.rm = TRUE)
-  medQpb <-  apply(qual_mat, 2, quantile, probs = 0.50, na.rm = TRUE)
-  q3Qpb <-  apply(qual_mat, 2, quantile, probs = 0.75, na.rm = TRUE)
-
+  # per position attempt 2 <- chunked method 
+  library(matrixStats)
+  
+  # change chunking logic to chunk based on length.
+  
+  # Chunked per-position quality summary for long reads
+  chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
+    qual_list <- as(quality(qs_dna), "list")
+    read_lengths <- width(qs_dna)
+    max_len <- max(read_lengths)
+    
+    # Prepare list to store results per chunk
+    chunk_stats <- list()
+    
+    # Process in chunks
+    for (start_pos in seq(1, max_len, by = chunk_size)) {
+      end_pos <- min(start_pos + chunk_size - 1, max_len)
+      
+      # Filter reads that are long enough for this chunk
+      valid_idx <- which(read_lengths >= start_pos)
+      if (length(valid_idx) == 0) next
+      
+      # Extract the relevant chunk for each valid read
+      chunk_mat <- do.call(rbind, lapply(valid_idx, function(i) {
+        q <- as.numeric(qual_list[[i]])
+        q_chunk <- q[start_pos:min(end_pos, length(q))]
+        # Pad if last chunk extends beyond read length
+        if (length(q_chunk) < (end_pos - start_pos + 1)) {
+          q_chunk <- c(q_chunk, rep(NA, (end_pos - start_pos + 1) - length(q_chunk)))
+        }
+        q_chunk
+      }))
+      
+      # Compute per-position statistics
+      mean_q <- colMeans2(chunk_mat, na.rm = TRUE)
+      med_q  <- colMedians(chunk_mat, na.rm = TRUE)
+      q1_q   <- colQuantiles(chunk_mat, probs = 0.25, na.rm = TRUE)
+      q3_q   <- colQuantiles(chunk_mat, probs = 0.75, na.rm = TRUE)
+      
+      # Build results table for this chunk
+      chunk_df <- data.frame(
+        position = seq(start_pos, end_pos),
+        mean = mean_q,
+        median = med_q,
+        q25 = q1_q,
+        q75 = q3_q
+      )
+      
+      chunk_stats[[length(chunk_stats) + 1]] <- chunk_df
+    }
+    
+    # Combine all chunks
+    do.call(rbind, chunk_stats)
+  }
+  
+  # Example usage:
+  # q_stats <- chunked_quality_per_position(qs, chunk_size = 5000)
+  # head(q_stats)
+  
   #calculate summary metrics
   #N50
   decreasinglengths <- sort(lengths, decreasing = TRUE)
@@ -147,3 +187,10 @@ QualMat <- function(qc_obj, stringset, filename){
   #return the object
   base::return(qc_obj)
 }
+
+install.packages('profvis')
+library(profvis)
+
+profvisoutput <- profvis({
+  qs_stats <- chunked_quality_per_position(reads)
+})
