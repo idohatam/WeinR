@@ -10,5 +10,13 @@
       metadata = list(
         analysis_date = Sys.time(),
         n_files = length(files)
+      ),
+      summary_metrics = data.frame(
+        file = character(),
+        yield = numeric(),
+        N50 = numeric(),
+        N90 = numeric(),
+        avgQscore = numeric(),
+        stringsAsFactors = FALSE
       ))
 }

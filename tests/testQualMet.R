@@ -1,4 +1,4 @@
-folder_path <- "/Users/mtaillefer00/Documents/BIOL_4315_Lab_4_MT/processed_reads"
+folder_path <- "/Users/ocoelho00/Documents/biol4315/repos/longR/testData"
 
 # Get all .fastq files (non-recursive)
 fastq_files <- list.files(path = folder_path, pattern = "\\_1.fastq$", full.names = TRUE)
