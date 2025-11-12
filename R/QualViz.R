@@ -8,18 +8,18 @@ QualViz <- function(files, outpath, title){
   
   for (file in qc_obj@files) {
     reads <- ImportFile(file)      
-    qc_obj <- QualMat(reads, qsds, basename(file))
+    qc_obj <- QualMat(qc_obj, reads, basename(file))
   }
   # (optional) make sure the output dir exists + use absolute path
   outpath <- normalizePath(outpath, winslash = "/", mustWork = FALSE)
   dir.create(dirname(outpath), recursive = TRUE, showWarnings = FALSE)
   
-  CreateReport(mfa = qc_obj, path = outpath, title = title,
-               overwrite = TRUE, render_html = TRUE)
+  #CreateReport(mfa = qc_obj, path = outpath, title = title,
+  #             overwrite = TRUE, render_html = TRUE)
   
-  qc_obj
+  #qc_obj
   
   #Return the LongReadQC object
-  #base::return(qc_obj)
+  base::return(qc_obj)
   
 }
