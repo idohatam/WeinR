@@ -7,8 +7,8 @@ QualViz <- function(files, outpath, title){
   qc_obj <-.init_qc_object(files)
   
   for (file in qc_obj@files) {
-    qsds <- ImportFile(file)[[1]]      # <-- pull the QSDS out of the list
-    qc_obj <- QualMat(qc_obj, qsds, basename(file))
+    reads <- ImportFile(file)      
+    qc_obj <- QualMat(reads, qsds, basename(file))
   }
   # (optional) make sure the output dir exists + use absolute path
   outpath <- normalizePath(outpath, winslash = "/", mustWork = FALSE)
