@@ -22,7 +22,6 @@
 #'  FIGURE OUT WHAT IS TAKING UP SO MUCH MEMORY IN THE OBJECT
 #'    save only N count if >0
 #'
-#'
 #'use profvis on function to figure out data use stuff
 #'use microbenchmark to figure out how different approaches compare
 #'data table instead of dataframe?
@@ -37,32 +36,23 @@
 #' -> for next week having working workflow
 #'run profvis on R terminal 
 
-
 QualMat <- function(qc_obj, stringset, filename){
   
-  # !!! since we aren't looping, this should be done outside of the function
-  # Initialize summary metrics dataframe
-  #qc_obj@summary_metrics <- data.frame(
-  #  file = character(),
-  #  yield = numeric(),
-  #  N50 = numeric(),
-  #  N90 = numeric(),
-  #  avgQscore = numeric(),
-  #  stringsAsFactors = FALSE
-  #)
-  
-  dna <- Biostrings::DNAStringSet(stringset)
-  quals <- Biostrings::quality(stringset)
+  #dna <- Biostrings::DNAStringSet(stringset)
+  #quals <- Biostrings::quality(stringset)
   seqNames <- names(stringset)
   
   #calculate metrics
   
   #LENGTH
-  lengths <- Biostrings::width(dna)
+  #lengths <- Biostrings::width(dna)
+  #yield <- sum(lengths)
+  lengths <- Biostrings::width(Biostrings::DNAStringSet(stringset))
   yield <- sum(lengths)
  
   #calculate base frequency
-  af <- Biostrings::alphabetFrequency(dna)
+  #af <- Biostrings::alphabetFrequency(dna)
+  af <- Biostrings::alphabetFrequency(Biostrings::DNAStringSet(stringset))
   
   #N content per read              
   N <- af[,'N']
@@ -78,18 +68,17 @@ QualMat <- function(qc_obj, stringset, filename){
   # dataframe, 4 columns for each base: each has proportion of given base
   # row for each read
   
-  
-  
   #Quality scores
   #per file
-  qual_list <- lapply(as.character(quals), function(q) utf8ToInt(q) - 33)
+  #qual_list <- lapply(as.character(quals), function(q) utf8ToInt(q) - 33)
+  qual_list <- lapply(as.character(Biostrings::quality(stringset)), function(q) utf8ToInt(q) - 33)
   avgQscore <- mean(unlist(qual_list))
   
   #per read
   perReadQscore <- lapply(qual_list, function(q) mean(q))
   
   # per position attempt 2 <- chunked method 
-  library(matrixStats)
+  #library(matrixStats)
   
   # change chunking logic to chunk based on length.
   
@@ -122,10 +111,10 @@ QualMat <- function(qc_obj, stringset, filename){
       }))
       
       # Compute per-position statistics
-      mean_q <- colMeans2(chunk_mat, na.rm = TRUE)
-      med_q  <- colMedians(chunk_mat, na.rm = TRUE)
-      q1_q   <- colQuantiles(chunk_mat, probs = 0.25, na.rm = TRUE)
-      q3_q   <- colQuantiles(chunk_mat, probs = 0.75, na.rm = TRUE)
+      mean_q <- matrixStats::colMeans2(chunk_mat, na.rm = TRUE)
+      med_q  <- matrixStats::colMedians(chunk_mat, na.rm = TRUE)
+      q1_q   <- matrixStats::colQuantiles(chunk_mat, probs = 0.25, na.rm = TRUE)
+      q3_q   <- matrixStats::colQuantiles(chunk_mat, probs = 0.75, na.rm = TRUE)
       
       # Build results table for this chunk
       chunk_df <- data.frame(
@@ -143,9 +132,8 @@ QualMat <- function(qc_obj, stringset, filename){
     do.call(rbind, chunk_stats)
   }
   
-  # Example usage:
-  q_stats <- chunked_quality_per_position(quals, chunk_size = 5000)
-  # head(q_stats)
+  #calculate per position messages
+  q_stats <- chunked_quality_per_position(Biostrings::quality(stringset), chunk_size = 5000)
   
   #calculate summary metrics
   #N50
@@ -164,17 +152,12 @@ QualMat <- function(qc_obj, stringset, filename){
   qc_obj@metrics[[filename]] <- list(
     readLengths = lengths,
     meanprQscore = perReadQscore,
-    #meanppQscore = meanQpb,
-    #firstppQQscore = q1Qpb,
-    #thirdppQQscore = q3Qpb,
-    #medppscore = medQpb,
     perPosQuality = q_stats,
-    Ncount = as.list(setNames(N, paste0("read", seq_along(N)))),
-    prGCcontent = as.list(setNames(perReadGC, paste0("read", seq_along(perReadGC))))
+    Ncount = as.list(N),
+    prGCcontent = as.list(perReadGC)
   )
   
   # Add summary metrics to dataframe
-  
   summary_df <- data.frame(
     file = filename,
     yield = yield,
