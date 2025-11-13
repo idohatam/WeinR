@@ -76,34 +76,6 @@ h1.title {
 }
 .subtitle, .author, .date { color: var(--muted); }
 
-/* -------- Header banner -------- */
-.header-banner {
-  background: linear-gradient(135deg, rgba(0,114,178,0.09) 0%, rgba(0,158,115,0.09) 100%);
-  border: 1px solid var(--border);
-  border-left: 6px solid var(--c-blue);
-  border-radius: 14px;
-  padding: 18px 20px;
-  margin: 18px 0 8px;
-  box-shadow: 0 2px 6px rgba(10, 31, 68, 0.06);
-}
-.header-banner .meta {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin-top: 6px;
-}
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 0.85rem;
-  color: var(--muted);
-  background: var(--surface);
-}
-
 /* -------- Cards -------- */
 .section-card {
   background: var(--surface);
@@ -216,7 +188,6 @@ body <- c(
   "  library(gridExtra)",
   "})",
   "",
-  "# null-coalescing helper",
   "`%||%` <- function(a, b) if (!is.null(a)) a else b",
   "```",
   "",
@@ -258,42 +229,68 @@ body <- c(
   "<div class='section-card'>",
   "## Plots",
   "",
-  "### Histograms",
+  "### Read length histograms",
   "```{r, fig.width=12, fig.height=4, fig.align='center'}",
-  "hists <- lapply(qc@plots, function(ps) {",
-  "  if (inherits(ps, 'ggplot')) return(ps)",
-  "  if (is.list(ps)) ps[['hist']] %||% ps[['length_hist']] %||% NULL else NULL",
-  "})",
-  "hists <- Filter(Negate(is.null), hists)",
-  "if (length(hists)) {",
-  "  n <- length(hists); ncol <- min(3, n); nrow <- ceiling(n / ncol)",
-  "  gridExtra::grid.arrange(grobs = hists, ncol = ncol, nrow = nrow)",
+  "lens <- Filter(Negate(is.null),",
+  "  lapply(qc@plots, function(ps) if (is.list(ps)) ps[['length_hist']] else NULL)",
+  ")",
+  "if (length(lens)) {",
+  "  n <- length(lens); ncol <- min(3, n); nrow <- ceiling(n / ncol)",
+  "  gridExtra::grid.arrange(grobs = lens, ncol = ncol, nrow = nrow)",
   "} else {",
-  "  cat('No histograms available')",
+  "  cat('No length histograms available')",
   "}",
   "```",
   "",
-  "### Density plots",
+  "### Average Q-score histograms",
   "```{r, fig.width=12, fig.height=4, fig.align='center'}",
-  "dens <- lapply(qc@plots, function(ps) if (is.list(ps)) ps[['density']] else NULL)",
-  "dens <- Filter(Negate(is.null), dens)",
-  "if (length(dens)) {",
-  "  n <- length(dens); ncol <- min(3, n); nrow <- ceiling(n / ncol)",
-  "  gridExtra::grid.arrange(grobs = dens, ncol = ncol, nrow = nrow)",
+  "qhist <- Filter(Negate(is.null),",
+  "  lapply(qc@plots, function(ps) if (is.list(ps)) ps[['quality_hist']] else NULL)",
+  ")",
+  "if (length(qhist)) {",
+  "  n <- length(qhist); ncol <- min(3, n); nrow <- ceiling(n / ncol)",
+  "  gridExtra::grid.arrange(grobs = qhist, ncol = ncol, nrow = nrow)",
   "} else {",
-  "  cat('No density plots available')",
+  "  cat('No Q-score histograms available')",
   "}",
   "```",
   "",
-  "### Boxplots",
+  "### GC-content histograms",
   "```{r, fig.width=12, fig.height=4, fig.align='center'}",
-  "boxes <- lapply(qc@plots, function(ps) if (is.list(ps)) ps[['box']] else NULL)",
-  "boxes <- Filter(Negate(is.null), boxes)",
-  "if (length(boxes)) {",
-  "  n <- length(boxes); ncol <- min(3, n); nrow <- ceiling(n / ncol)",
-  "  gridExtra::grid.arrange(grobs = boxes, ncol = ncol, nrow = nrow)",
+  "gch <- Filter(Negate(is.null),",
+  "  lapply(qc@plots, function(ps) if (is.list(ps)) ps[['gc_hist']] else NULL)",
+  ")",
+  "if (length(gch)) {",
+  "  n <- length(gch); ncol <- min(3, n); nrow <- ceiling(n / ncol)",
+  "  gridExtra::grid.arrange(grobs = gch, ncol = ncol, nrow = nrow)",
   "} else {",
-  "  cat('No boxplots available.')",
+  "  cat('No GC-content histograms available')",
+  "}",
+  "```",
+  "",
+  "### Read quality vs length",
+  "```{r, fig.width=12, fig.height=4, fig.align='center'}",
+  "qvl <- Filter(Negate(is.null),",
+  "  lapply(qc@plots, function(ps) if (is.list(ps)) ps[['q_vs_length']] else NULL)",
+  ")",
+  "if (length(qvl)) {",
+  "  n <- length(qvl); ncol <- min(2, n); nrow <- ceiling(n / ncol)",
+  "  gridExtra::grid.arrange(grobs = qvl, ncol = ncol, nrow = nrow)",
+  "} else {",
+  "  cat('No quality-vs-length plots available')",
+  "}",
+  "```",
+  "",
+  "### Per-position quality",
+  "```{r, fig.width=12, fig.height=4, fig.align='center'}",
+  "ppq <- Filter(Negate(is.null),",
+  "  lapply(qc@plots, function(ps) if (is.list(ps)) ps[['per_pos_q']] else NULL)",
+  ")",
+  "if (length(ppq)) {",
+  "  n <- length(ppq); ncol <- min(2, n); nrow <- ceiling(n / ncol)",
+  "  gridExtra::grid.arrange(grobs = ppq, ncol = ncol, nrow = nrow)",
+  "} else {",
+  "  cat('No per-position quality plots available')",
   "}",
   "```",
   "</div>",
@@ -333,4 +330,4 @@ if (isTRUE(render_html)) {
 }
 
 invisible(list(rmd = normalizePath(path)))
-} 
+}
