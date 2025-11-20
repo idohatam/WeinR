@@ -292,4 +292,144 @@ BenchmarkQualMat <- function(qc_obj, stringset, filename){
   base::return(qc_obj)
 }
 
+library(matrixStats)
+
+updated_chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
+  # Convert quality scores once
+  qual_list <- lapply(as(qs_dna, "list"), as.numeric)
+  read_lengths <- Biostrings::width(qs_dna)
+  max_len <- max(read_lengths)
+  
+  chunk_stats <- vector("list", ceiling(max_len / chunk_size))
+  chunk_i <- 1
+  
+  for (start_pos in seq(1, max_len, by = chunk_size)) {
+    end_pos <- min(start_pos + chunk_size - 1, max_len)
+    chunk_width <- end_pos - start_pos + 1
+    
+    # Reads long enough for this chunk
+    valid_idx <- which(read_lengths >= start_pos)
+    n_valid <- length(valid_idx)
+    if (n_valid == 0) next
+    
+    # Preallocate matrix
+    chunk_mat <- matrix(NA_real_, nrow = n_valid, ncol = chunk_width)
+    
+    # Fill rows
+    for (row in seq_len(n_valid)) {
+      i <- valid_idx[row]
+      q <- qual_list[[i]]
+      end_slice <- min(end_pos, read_lengths[i])
+      len <- end_slice - start_pos + 1
+      if (len > 0) {
+        chunk_mat[row, 1:len] <- q[start_pos:end_slice]
+      }
+    }
+    
+    # Summary stats
+    chunk_stats[[chunk_i]] <- data.frame(
+      position = start_pos:end_pos,
+      mean = matrixStats::colMeans2(chunk_mat, na.rm = TRUE),
+      median = matrixStats::colMedians(chunk_mat, na.rm = TRUE),
+      q25 = matrixStats::colQuantiles(chunk_mat, probs = 0.25, na.rm = TRUE),
+      q75 = matrixStats::colQuantiles(chunk_mat, probs = 0.75, na.rm = TRUE)
+    )
+    chunk_i <- chunk_i + 1
+  }
+  
+  # Combine
+  do.call(rbind, chunk_stats)
+}
+
+library(matrixStats)
+library(data.table)
+
+chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
+  
+  # Convert once at the start
+  qual_list <- lapply(as(qs_dna, "list"), as.numeric)
+  read_lengths <- Biostrings::width(qs_dna)
+  max_len <- max(read_lengths)
+  
+  # Total number of chunks
+  n_chunks <- ceiling(max_len / chunk_size)
+  
+  # -----------------------------------------------------------
+  # 🔥 1. Precompute valid read indices for each chunk
+  # -----------------------------------------------------------
+  chunk_valid <- vector("list", n_chunks)
+  
+  for (i in seq_along(read_lengths)) {
+    last_chunk <- ceiling(read_lengths[i] / chunk_size)
+    if (last_chunk > 0) {
+      # Append this read index to all chunks it contributes to
+      for (chunk in seq_len(last_chunk)) {
+        chunk_valid[[chunk]] <- c(chunk_valid[[chunk]], i)
+      }
+    }
+  }
+  
+  # Storage for chunk results
+  chunk_stats <- vector("list", n_chunks)
+  
+  # -----------------------------------------------------------
+  # Main per-chunk loop
+  # -----------------------------------------------------------
+  chunk_i <- 1
+  for (start_pos in seq(1, max_len, by = chunk_size)) {
+    
+    end_pos   <- min(start_pos + chunk_size - 1, max_len)
+    chunk_len <- end_pos - start_pos + 1
+    
+    valid_idx <- chunk_valid[[chunk_i]]
+    n_valid <- length(valid_idx)
+    
+    if (n_valid == 0) {
+      chunk_i <- chunk_i + 1
+      next
+    }
+    
+    # Preallocate chunk matrix
+    cm <- matrix(NA_real_, nrow = n_valid, ncol = chunk_len)
+    
+    # Fill chunk matrix
+    for (row in seq_len(n_valid)) {
+      i <- valid_idx[row]
+      q <- qual_list[[i]]
+      
+      end_slice <- min(end_pos, read_lengths[i])
+      len       <- end_slice - start_pos + 1
+      
+      if (len > 0) {
+        cm[row, 1:len] <- q[start_pos:end_slice]
+      }
+    }
+    
+    # -----------------------------------------------------------
+    # 🔥 7. Reduce work inside matrixStats
+    #     → compute all stats from *one* matrixStats pass
+    # -----------------------------------------------------------
+    # colMedians & colQuantiles share underlying C loops and are fast,
+    # but we still eliminate redundant passes where possible
+    med   <- colMedians(cm, na.rm = TRUE)
+    q25   <- colQuantiles(cm, probs = 0.25, na.rm = TRUE)
+    q75   <- colQuantiles(cm, probs = 0.75, na.rm = TRUE)
+    meanv <- colMeans2(cm, na.rm = TRUE)
+    
+    chunk_stats[[chunk_i]] <- data.table(
+      position = start_pos:end_pos,
+      mean     = meanv,
+      median   = med,
+      q25      = q25,
+      q75      = q75
+    )
+    
+    chunk_i <- chunk_i + 1
+  }
+  
+  # -----------------------------------------------------------
+  # 🔥 6. Fast row-binding with data.table::rbindlist()
+  # -----------------------------------------------------------
+  rbindlist(chunk_stats, use.names = TRUE, fill = TRUE)
+}
 
