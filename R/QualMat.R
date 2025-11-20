@@ -77,13 +77,48 @@ QualMat <- function(qc_obj, stringset, filename){
   #per read
   perReadQscore <- lapply(qual_list, function(q) mean(q))
   
-  # per position attempt 2 <- chunked method 
-  #library(matrixStats)
+  #calculate per position messages
+  q_stats <- chunked_quality_per_position(Biostrings::quality(stringset), chunk_size = 5000)
   
-  # change chunking logic to chunk based on length.
+  #calculate summary metrics
+  #N50
+  decreasinglengths <- sort(lengths, decreasing = TRUE)
+  tmp <- cumsum(decreasinglengths)
+  N50 <- decreasinglengths[which(tmp >= yield/2)[1]]
   
+  #N90
+  decreasinglengths <- sort(lengths, decreasing = TRUE)
+  tmp <- cumsum(decreasinglengths)
+  N90 <- decreasinglengths[which(tmp >= yield*0.9)[1]]
+  
+  #fill object
+  
+  # add metrics 
+  qc_obj@metrics[[filename]] <- list(
+    readLengths = lengths,
+    meanprQscore = perReadQscore,
+    perPosQuality = q_stats,
+    Ncount = as.list(N),
+    prGCcontent = as.list(perReadGC)
+  )
+  
+  # Add summary metrics to dataframe
+  summary_df <- data.frame(
+    file = filename,
+    yield = yield,
+    N50 = N50,
+    N90 = N90,
+    avgQscore = avgQscore,
+    stringsAsFactors = FALSE
+  )
+  qc_obj@summary_metrics <- rbind(qc_obj@summary_metrics, summary_df)
+  
+  #return the object
+  base::return(qc_obj)
+}
+
   # Chunked per-position quality summary for long reads
-  chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
+chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
     qual_list <- as(qs_dna, "list")
     read_lengths <- Biostrings::width(qs_dna)
     max_len <- max(read_lengths)
@@ -130,13 +165,85 @@ QualMat <- function(qc_obj, stringset, filename){
     
     # Combine all chunks
     do.call(rbind, chunk_stats)
-  }
+}
+
+
+BenchmarkQualMat <- function(qc_obj, stringset, filename){
+  functionstart <- Sys.time()
+  #dna <- Biostrings::DNAStringSet(stringset)
+  #quals <- Biostrings::quality(stringset)
+  seqNames <- names(stringset)
+  
+  #calculate metrics
+  
+  #LENGTH
+  #lengths <- Biostrings::width(dna)
+  #yield <- sum(lengths)
+  lt <- Sys.time()
+  lengths <- Biostrings::width(Biostrings::DNAStringSet(stringset))
+  yield <- sum(lengths)
+  lte <- Sys.time()
+  print('length and yield calculation:')
+  print(lte - lt)
+  
+  #calculate base frequency
+  #af <- Biostrings::alphabetFrequency(dna)
+  aft <- Sys.time()
+  af <- Biostrings::alphabetFrequency(Biostrings::DNAStringSet(stringset))
+  afte <- Sys.time()
+  print('alphabetfrequency calculations:')
+  print(afte - aft)
+  
+  
+  #N content per read  
+  ns <- Sys.time()
+  N <- af[,'N']
+  
+  #GC CONTENT 
+  #per read
+  perReadGC <- (af[,'G'] + af[,'C'])/lengths
+  
+  #per file
+  perFileGC <- sum(af[,'G']+ af[,'C'])/yield
+  afe <- Sys.time()
+  print('N and GC calculations:')
+  print(afe - ns)
+  #per position gc content
+  # dataframe, 4 columns for each base: each has proportion of given base
+  # row for each read
+  
+  #Quality scores
+  #per file
+  #qual_list <- lapply(as.character(quals), function(q) utf8ToInt(q) - 33)
+  qt <- Sys.time()
+  qual_list <- lapply(as.character(Biostrings::quality(stringset)), function(q) utf8ToInt(q) - 33)
+  qle <- Sys.time()
+  print('making qual list')
+  print(qle - qt)
+  
+  ms <- Sys.time()
+  avgQscore <- mean(unlist(qual_list))
+  me <- Sys.time()
+  print('per file quality scores')
+  print(me - ms)
+  
+  #per read
+  qre <- Sys.time()
+  perReadQscore <- lapply(qual_list, function(q) mean(q))
+  qe <- Sys.time()
+  print('per read quality scores')
+  print(qe - qre)
   
   #calculate per position messages
+  qs <- Sys.time()
   q_stats <- chunked_quality_per_position(Biostrings::quality(stringset), chunk_size = 5000)
+  qse <- Sys.time()
+  print('per position q score calculation:')
+  print(qse - qs)
   
   #calculate summary metrics
   #N50
+  ns <- Sys.time()
   decreasinglengths <- sort(lengths, decreasing = TRUE)
   tmp <- cumsum(decreasinglengths)
   N50 <- decreasinglengths[which(tmp >= yield/2)[1]]
@@ -145,10 +252,13 @@ QualMat <- function(qc_obj, stringset, filename){
   decreasinglengths <- sort(lengths, decreasing = TRUE)
   tmp <- cumsum(decreasinglengths)
   N90 <- decreasinglengths[which(tmp >= yield*0.9)[1]]
+  ne <- Sys.time()
+  print('N50/90 calculations')
+  print(ne - ns)
   
   #fill object
-  
   # add metrics 
+  fs <- Sys.time()
   qc_obj@metrics[[filename]] <- list(
     readLengths = lengths,
     meanprQscore = perReadQscore,
@@ -156,8 +266,12 @@ QualMat <- function(qc_obj, stringset, filename){
     Ncount = as.list(N),
     prGCcontent = as.list(perReadGC)
   )
+  fe <- Sys.time()
+  print('fill metrics')
+  print(fe-fs)
   
   # Add summary metrics to dataframe
+  ss <- Sys.time()
   summary_df <- data.frame(
     file = filename,
     yield = yield,
@@ -167,7 +281,15 @@ QualMat <- function(qc_obj, stringset, filename){
     stringsAsFactors = FALSE
   )
   qc_obj@summary_metrics <- rbind(qc_obj@summary_metrics, summary_df)
+  se <- Sys.time()
+  print('fill summary metrics:')
+  print(se - ss)
   
   #return the object
+  fe <- Sys.time()
+  print('overall runtime')
+  print(fe - functionstart) 
   base::return(qc_obj)
 }
+
+
