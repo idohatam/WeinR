@@ -36,5 +36,3 @@ LinkAndReport <- function(files, outpath, title, render_report = TRUE) {
 
 
 
-
-
