@@ -9,6 +9,7 @@ QualViz <- function(files, outpath, title){
   for (file in qc_obj@files) {
     reads <- ImportFile(file)      
     qc_obj <- QualMat(qc_obj, reads, basename(file))
+    qc_obj <- QualPlot(qc_obj, basename(file))
   }
   # (optional) make sure the output dir exists + use absolute path
   outpath <- normalizePath(outpath, winslash = "/", mustWork = FALSE)
