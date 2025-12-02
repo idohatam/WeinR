@@ -1,35 +1,29 @@
 TrimLong <- function(qc_obj,
                      Start = NULL,
                      End = NULL,
+                     FilePath = NULL,
                      OutDir = ".",
-                     OutFileType = c("fastq"),
-                     OutFile = NULL) {
+                     OutFile = NULL,
+                     OutFileType = c("fastq")) {
+  
+  # Choose which file to trim
+  fpath <- if (!is.null(FilePath)) FilePath else qc_obj@files[[1]]
+  OriginalFPath <- qc_obj@files[[1]]
   
   if (!dir.exists(OutDir)) dir.create(OutDir, recursive = TRUE)
-  
-  # Correct file info extraction
-  fpath <- qc_obj@files[[1]]
-  fname <- basename(fpath)   # Now only for printing
-  
-  message("Trimming reads for file: ", fname)
   
   # Import reads
   reads <- ImportFile(fpath)
   
-  # Compute trimming boundaries
+  # Compute trimming
   n <- Biostrings::width(reads)
   trim_start <- rep(if (!is.null(Start)) Start + 1 else 1, length(n))
   trim_end   <- if (!is.null(End)) n - End else n
   
-  # Apply trimming
   trimmed_reads <- IRanges::narrow(reads, start = trim_start, end = trim_end)
   
-  # Output naming (fixed)
-  base_name <- if (!is.null(OutFile)) {
-    RemoveExt(OutFile)
-  } else {
-    RemoveExt(fpath)   # use full path consistently
-  }
+  # Output naming
+  base_name <- if (!is.null(OutFile)) RemoveExt(OutFile) else RemoveExt(fpath)
   
   out_paths <- WriteReadOutputs(
     reads = trimmed_reads,
@@ -38,22 +32,15 @@ TrimLong <- function(qc_obj,
     OutFileType = OutFileType
   )
   
-  # Metadata stored using the file path as the key
-  qc_obj@metadata[[fpath]]$trim_summary <- list(
-    start_trimmed = ifelse(is.null(Start), 0, Start),
-    end_trimmed   = ifelse(is.null(End), 0, End),
-    total_reads   = length(trimmed_reads),
-    avg_length    = mean(Biostrings::width(trimmed_reads)),
-    yield_after   = sum(Biostrings::width(trimmed_reads)),
-    output_paths  = out_paths,
-    trim_date     = Sys.time()
-  )
-  
-  message(
-    "Trimming complete for ", fname, ": ",
-    qc_obj@metadata[[fpath]]$trim_summary$total_reads, " reads retained. ",
-    "(start=", ifelse(is.null(Start), 0, Start),
-    ", end=", ifelse(is.null(End), 0, End), ")"
+  # metadata storage (per file path)
+  qc_obj@metadata[[OriginalFPath]]$trim_summary <- list(
+    file_out = out_paths[[1]],
+    reads_before = length(reads),
+    reads_after = length(trimmed_reads),
+    start_trim = ifelse(is.null(Start), 0, Start),
+    end_trim = ifelse(is.null(End), 0, End),
+    yield_after = sum(Biostrings::width(trimmed_reads)),
+    trim_date = Sys.time()
   )
   
   base::return(qc_obj)

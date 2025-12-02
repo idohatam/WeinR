@@ -8,15 +8,15 @@
   new("LongReadQC",
       files = files,
       metadata = list(
-        analysis_date = Sys.time(),
-        n_files = length(files)
+        #analysis_date = Sys.time(),
+        #n_files = length(files)
       ),
       summary_metrics = data.frame(
-        file = character(),
-        yield = numeric(),
-        N50 = numeric(),
-        N90 = numeric(),
-        avgQscore = numeric(),
+        file = character(length(files)),
+        yield = numeric(length(files)),
+        N50 = numeric(length(files)),
+        N90 = numeric(length(files)),
+        avgQscore = numeric(length(files)),
         stringsAsFactors = FALSE
       ))
 }

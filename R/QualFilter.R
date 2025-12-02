@@ -1,3 +1,15 @@
+#' Run filtering workflow across all files in a LongReadQC object
+#'
+#' @param qc_obj A LongReadQC object (with metrics already filled by QualMat()).
+#' @param OutDir Directory where filtered read files will be saved.
+#' @param MinAvgQS Minimum per-read average quality score threshold.
+#' @param MinLength Minimum read length threshold.
+#' @param MaxNumberNs Maximum allowed number of Ns per read.
+#' @param OutFileType Output format(s): "fastq", "fasta", or "bam".
+#'
+#' @return The updated LongReadQC object with filtering results in metadata.
+#' @export
+
 QualFilter <- function(qc_obj,
                        OutDir = ".",
                        MinAvgQS = 20,
@@ -14,19 +26,16 @@ QualFilter <- function(qc_obj,
     
     message("\n→ Processing file: ", fpath)
     
-    # Construct a single-file subobject
+    # Build single-file subobject
     single_qc <- qc_obj
     single_qc@files <- fpath
-    
-    # extract metrics by path
     single_qc@metrics[[fpath]] <- qc_obj@metrics[[fpath]]
-    # subset summary_metrics by *path*
     single_qc@summary_metrics <- qc_obj@summary_metrics[
       qc_obj@summary_metrics$file == fpath,
       , drop = FALSE
     ]
     
-    # run filtering
+    # Run filtering
     filtered_qc <- FilterLong(
       qc_obj = single_qc,
       MinAvgQS = MinAvgQS,
@@ -36,20 +45,14 @@ QualFilter <- function(qc_obj,
       OutDir = OutDir
     )
     
-    # no filter_summary produced (no reads passed)
-    if (is.null(filtered_qc@metadata$filter_summary)) {
-      message("No filtering summary for: ", fpath, " — skipping summary update.")
+    # If filtering produced no metadata, skip
+    if (is.null(filtered_qc@metadata[[fpath]]$filter_summary)) {
+      message("No filtering summary for: ", fpath)
       next
     }
     
-    # update summary metrics
-   # qc_obj@summary_metrics[
-      #qc_obj@summary_metrics$file == fpath,
-      "filtered_yield"
-    #] <- filtered_qc@metadata$filter_summary$yield_after
-    
-    # Store metadata under full path
-    qc_obj@metadata[[fpath]] <- filtered_qc@metadata
+    # Save ONLY this file’s metadata
+    qc_obj@metadata[[fpath]] <- filtered_qc@metadata[[fpath]]
   }
   
   message("\nFiltering complete for all files.")

@@ -1,7 +1,3 @@
-RemoveExt <- function(x) {
-  sub("\\.(fastq|fq|fasta|fa|bam)(\\.gz)?$", "", basename(x), ignore.case = TRUE)
-}
-
 WriteReadOutputs <- function(reads, base_name, OutDir = ".", OutFileType = c("fastq")) {
   # Ensure output directory exists
   if (!dir.exists(OutDir)) dir.create(OutDir, recursive = TRUE)
