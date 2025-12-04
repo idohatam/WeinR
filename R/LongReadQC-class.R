@@ -7,9 +7,10 @@
 #' @slot plots nested list structure: file -> plot_type -> ggplot object
 #' @slot summary_metrics data.frame with aggregated statistics across files
 #' @slot metadata list containing analysis parameters, timestamps, etc.
-#'
 #' @export
 #' 
+
+
 setClass("LongReadQC",
          slots = list(
            files = "character",

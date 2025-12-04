@@ -6,7 +6,7 @@ fastq_files <- list.files(path = folder_path, pattern = "\\p.fastq$", full.names
 # Print results
 fastq_files
 
-testObject <- .init_qc_object(fastq_files)
+testObject2 <- .init_qc_object(fastq_files)
 
 for(file in fastq_files){
   start <- Sys.time()
@@ -16,7 +16,7 @@ for(file in fastq_files){
   print(end - start)
   
   start <- Sys.time()
-  testObject <- BenchmarkQualMat(testObject, qs_list, file)
+  testObject2 <- BenchmarkQualMat(testObject2, qs_list, file)
   end <- Sys.time()
   print('metrics calculation')
   print(end - start)

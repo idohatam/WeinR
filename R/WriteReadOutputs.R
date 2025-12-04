@@ -62,3 +62,4 @@ WriteReadOutputs <- function(reads, base_name, OutDir = ".", OutFileType = c("fa
   
   return(out_paths)
 }
+

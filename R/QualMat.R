@@ -313,7 +313,7 @@ chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
     end_pos <- min(start_pos + chunk_size - 1, max_len)
     chunk_len <- end_pos - start_pos + 1
     
-    # 🔥 Fast validity lookup using monotone read lengths
+    # Fast validity lookup using monotone read lengths
     # Reads are sorted so we only find the cutoff once
     first_valid <- which(read_lengths[ord] >= start_pos)[1]
     if (is.na(first_valid)) {
@@ -338,7 +338,7 @@ chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
       }
     }
     
-    # 🔥 One call for all quantiles
+    #One call for all quantiles
     quants <- colQuantiles(cm, probs = c(0.25, 0.5, 0.75), na.rm = TRUE)
     q25 <- quants[, 1]
     med <- quants[, 2]
@@ -360,3 +360,4 @@ chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
   
   rbindlist(chunk_stats)
 }
+

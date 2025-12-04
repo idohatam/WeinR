@@ -4,12 +4,13 @@
 #' - computes metrics (QualMat)
 #' - makes plots (QualPlot)
 #' - optionally writes a report (CreateReport)
+
 LinkAndReport <- function(files, outpath, title, render_report = TRUE) {
   # init object
   qc_obj <- .init_qc_object(files)
   
   for (file in qc_obj@files) {
-    qsds <- ImportFile(file)[[1]]     
+    qsds <- ImportFile(file)    
     
     fname <- basename(file)
     qc_obj <- QualMat(qc_obj, qsds, fname)
@@ -33,6 +34,3 @@ LinkAndReport <- function(files, outpath, title, render_report = TRUE) {
 
   return(qc_obj)
 }
-
-
-

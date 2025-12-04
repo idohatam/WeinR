@@ -45,3 +45,4 @@ TrimLong <- function(qc_obj,
   
   base::return(qc_obj)
 }
+
