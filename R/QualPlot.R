@@ -2,10 +2,11 @@
 # Compatible with LongReadQC structure
 
 # Required libraries
-# library(ggplot2)
-# library(scales)
+#library(ggplot2)
+#library(scales)
 # library(mgcv) # for geom_smooth(method = "gam")
-# library(ggrastr)pip install 
+#library(ggrastr)
+#pip install 
 #
 
 #break up into own file. 
@@ -59,27 +60,46 @@ QualPlot <- function(qc_obj, filename) {
 
 # 1. Read Length Histogram (log scale)
 make_length_plot <- function(readLengths) {
-  ggplot(data.frame(read_length = readLengths), aes(x = read_length)) +
-    geom_histogram(
+  
+  ggplot2::ggplot(
+    data.frame(read_length = readLengths),
+    ggplot2::aes(x = read_length)
+  ) +
+    ggplot2::geom_histogram(
       bins = 50,
-      fill = "#0072B2",      
+      fill = "#0072B2",
       color = "white",
       alpha = 0.9
     ) +
-    scale_x_log10(labels = comma_format()) +
-    labs(
+    
+    ggplot2::scale_x_log10(
+      labels = scales::comma_format(),
+      expand = c(0, 0)
+    ) +
+    
+    ggplot2::scale_y_continuous(
+      expand = c(0, 0),
+      breaks = scales::pretty_breaks(n = 8)
+    ) +
+    
+    ggplot2::labs(
       x = "Read Length (bp, log scale)",
       y = "Read Count",
       title = "Read Length Distribution"
     ) +
-    theme_minimal(base_size = 13) +
-    theme(
-      panel.grid = element_blank(),          # Removes all gridlines
-      panel.background = element_blank(),    # Ensures clean background
-      plot.background = element_blank(),     # Removes gray panel background
-      plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
-      axis.line = element_line(color = "black"),  # Adds clean x/y axis lines
-      axis.ticks = element_line(color = "black")  # Adds small axis ticks
+    
+    ggplot2::theme_minimal(base_size = 15) +
+    ggplot2::theme(
+      panel.grid = ggplot2::element_blank(),
+      panel.background = ggplot2::element_blank(),
+      plot.background = ggplot2::element_blank(),
+      
+      plot.title = ggplot2::element_text(face = "bold", size = 14, hjust = 0),
+      axis.line     = ggplot2::element_line(color = "black", linewidth = 0.6),
+      axis.ticks    = ggplot2::element_line(color = "black", linewidth = 0.6)
+      
+      # plot.margin = ggplot2::margin(t = 5, r = 10, b = 20, l = 20)
+      
     )
 }
 
@@ -87,167 +107,221 @@ make_length_plot <- function(readLengths) {
 
 # 2. Average Q Score Histogram with vertical lines
 make_quality_plot <- function(meanprQscore, avgQScore = NULL) {
-  meanprQscore <- unlist(meanprQscore)   # flatten list -> numeric vector
   
-  mean_q <- if (!is.null(avgQScore)) avgQScore else mean(meanprQscore, na.rm = TRUE)
-  median_q <- median(meanprQscore, na.rm = TRUE)
+  meanprQscore <- unlist(meanprQscore)
   
-  ggplot(mapping = aes(x = meanprQscore)) +
-    geom_histogram(
+  # Compute statistics
+  mean_q   <- if (!is.null(avgQScore)) avgQScore else base::mean(meanprQscore, na.rm = TRUE)
+  median_q <- stats::median(meanprQscore, na.rm = TRUE)
+  
+  ggplot2::ggplot(
+    data = data.frame(meanprQscore = meanprQscore),
+    ggplot2::aes(x = meanprQscore)
+  ) +
+    
+    # Histogram
+    ggplot2::geom_histogram(
       bins = 40,
-      fill = "#009E73",
+      fill = "#8FBCBB",
       color = "white",
-      alpha = 0.9
+      alpha = 0.8
     ) +
-    geom_vline(
-      xintercept = mean_q,
-      color = "#D55E00",
+    
+    # Mean line
+    ggplot2::geom_vline(
+      # ggplot2::aes(xintercept = mean_q, color = "Mean"),   # <-- legend mapping removed
+      xintercept = mean_q,                                   # <-- direct color
+      color = "#BF616A",
       linetype = "dashed",
-      linewidth = 1
+      linewidth = 1.5
     ) +
-    geom_vline(
+    
+    # Median line
+    ggplot2::geom_vline(
+      # ggplot2::aes(xintercept = median_q, color = "Median"), # <-- legend mapping removed
       xintercept = median_q,
       color = "#0072B2",
       linetype = "solid",
-      linewidth = 1
+      linewidth = 1.5
     ) +
-    labs(
+    
+    # Legend palette (DISABLED)
+    # ggplot2::scale_color_manual(
+    #   name = NULL,
+    #   values = c(
+    #     "Mean"   = "#BF616A",
+    #     "Median" = "#0072B2"
+    #   )
+    # ) +
+    
+    ggplot2::scale_x_continuous(
+      expand = c(0, 0),
+      breaks = scales::pretty_breaks(n = 10)
+    ) +
+    
+    ggplot2::scale_y_continuous(
+      limits = c(0, NA),
+      expand = c(0, 0),
+      breaks = scales::pretty_breaks(n = 8)
+    ) +
+    
+    ggplot2::labs(
       x = "Average Phred Q-Score",
       y = "Read Count",
       title = "Average Q-Score Distribution"
     ) +
-    theme_minimal(base_size = 13) +
-    theme(
-      panel.grid = element_blank(),
-      axis.line = element_line(color = "black"),
-      axis.ticks = element_line(color = "black"),
-      plot.title = element_text(face = "bold", hjust = 0.5)
+    
+    ggplot2::theme_minimal(base_size = 15) +
+    ggplot2::theme(
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.minor.x = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_blank(),
+      panel.grid.minor.y = ggplot2::element_blank(),
+      
+      axis.line  = ggplot2::element_line(color = "black", linewidth = 0.6),
+      axis.ticks = ggplot2::element_line(color = "black", linewidth = 0.6),
+      
+      plot.title = ggplot2::element_text(face = "bold", hjust = 0),
+      
+      # Legend settings (DISABLED)
+      legend.position = "none",
+      # legend.position.inside = c(0.02, 0.96),
+      # legend.justification = c(0, 1),
+      # legend.direction = "horizontal",
+      # legend.text = ggplot2::element_text(size = 12),
+      # legend.key = ggplot2::element_blank(),
+      
+      plot.background  = ggplot2::element_blank(),
+      panel.background = ggplot2::element_blank(),
+      
+      plot.margin = ggplot2::margin(12, 15, 15, 15)
     )
+  
+  # Legend override settings (DISABLED)
+  # +
+  # ggplot2::guides(
+  #   color = ggplot2::guide_legend(
+  #     override.aes = list(
+  #       linetype = c("dashed", "solid"),
+  #       linewidth = c(2, 3)
+  #     )
+  #   )
+  # )
 }
+
+
 
 
 
 # 3. GC Content Histogram (average per read)
 make_gc_plot <- function(prGCContent) {
+  
   # Flatten list safely
   prGCContent <- unlist(prGCContent)
   
   # Skip if empty
   if (length(prGCContent) == 0) return(NULL)
   
-  # Plot
-  ggplot(data.frame(gc_content = prGCContent), aes(x = gc_content)) +
-    geom_histogram(bins = 40, fill = "#CC79A7", color = "white", alpha = 0.9) +
-    labs(
+  # Compute maximum histogram bin height for proper y-axis limits
+  # hist_vals <- graphics::hist(prGCContent, plot = FALSE, breaks = 40)$counts
+  # upper_y <- ceiling(max(hist_vals) / 10) * 10
+  
+  ggplot2::ggplot(
+    data = data.frame(gc_content = prGCContent),
+    ggplot2::aes(x = gc_content)
+  ) +
+    ggplot2::geom_histogram(
+      bins = 40,
+      fill = "#CC79A7",
+      color = "white",
+      alpha = 0.9
+    ) +
+    
+    ggplot2::scale_x_continuous(
+      expand = c(0, 0),
+      breaks = scales::pretty_breaks(n = 10)
+    ) +
+    
+    ggplot2::scale_y_continuous(
+      limits = c(0, NA),
+      expand = c(0, 0),
+      breaks = scales::pretty_breaks(n = 10)
+    ) +
+    
+    ggplot2::labs(
       x = "GC Content",
       y = "Read Count",
       title = "GC Content Distribution"
     ) +
-    theme_minimal(base_size = 13) +
-    theme(
-      panel.grid = element_blank(),
-      axis.line = element_line(color = "black"),
-      axis.ticks = element_line(color = "black"),
-      plot.title = element_text(face = "bold", hjust = 0.5)
-    )
+    
+    ggplot2::theme_minimal(base_size = 15) +
+    ggplot2::theme(
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.minor.x = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_blank(),
+      panel.grid.minor.y = ggplot2::element_blank(),
+      
+      axis.line  = ggplot2::element_line(color = "black", linewidth = 0.6),
+      axis.ticks = ggplot2::element_line(color = "black", linewidth = 0.6),
+      
+      plot.title = ggplot2::element_text(face = "bold", hjust = 0),
+      
+      plot.background  = ggplot2::element_blank(),
+      panel.background = ggplot2::element_blank()
+      )
 }
+
 
 # 5. Q Score vs. Read Length (Scatter + Smooth) #geom point density
 make_quality_vs_length_plot <- function(readLengths, meanprQscore) {
+  
   df <- data.frame(
     read_length = as.numeric(unlist(readLengths, use.names = FALSE)),
     avg_q_score = as.numeric(unlist(meanprQscore, use.names = FALSE))
   )
-
-  ggplot(df, aes(x = read_length, y = avg_q_score)) +
-    geom_point_rast(alpha = 0.25, color = "#0072B2", size = 0.4) + # geom_point density try. #
-    geom_smooth(
-      method = "gam",
-      formula = y ~ s(x, bs = "cs", k = 50),  # 'cs' gives a smooth cubic spline
-      color = "#D55E00",
-      linewidth = 1,
-      se = TRUE,                              # keep the ribbon!
-      alpha = 0.15                            # make the ribbon subtle
+  
+  ggplot2::ggplot(df, ggplot2::aes(x = read_length, y = avg_q_score)) +
+    ggrastr::geom_point_rast(
+      alpha = 0.25,
+      color = "#0072B2",
+      size = 0.4
     ) +
-    scale_x_log10(labels = comma_format()) +
-    coord_cartesian(ylim = c(0, 45)) +
-    labs(
+    
+    # LOG scale fixes compression of dense region
+    ggplot2::scale_x_log10(
+      labels = scales::comma_format(),
+      expand = c(0, 0)
+    ) +
+    
+    ggplot2::scale_y_continuous(
+      limits = c(0, 45),
+      expand = c(0, 0),
+      breaks = scales::pretty_breaks(n = 10)
+    ) +
+    
+    ggplot2::labs(
       x = "Read Length (bp, log scale)",
       y = "Average Q-Score",
       title = "Read Quality vs. Read Length"
     ) +
-    theme_minimal(base_size = 13) +
-    theme(
-      panel.grid = element_blank(),
-      axis.line = element_line(color = "black"),
-      axis.ticks = element_line(color = "black"),
-      plot.title = element_text(face = "bold", hjust = 0.5)
+    
+    ggplot2::theme_minimal(base_size = 15) +
+    ggplot2::theme(
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.minor.x = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_blank(),
+      panel.grid.minor.y = ggplot2::element_blank(),
+      
+      axis.line  = ggplot2::element_line(color = "black", linewidth = 0.6),
+      axis.ticks = ggplot2::element_line(color = "black", linewidth = 0.6),
+      
+      plot.title = ggplot2::element_text(face = "bold", hjust = 0),
+      
+      plot.background  = ggplot2::element_blank(),
+      panel.background = ggplot2::element_blank(),
+      
     )
 }
-
-# make_quality_vs_length_plot <- function(readLengths, meanprQscore) {
-#   
-#   library(ggplot2)
-#   library(hexbin)
-#   library(patchwork)
-#   
-#   df <- data.frame(
-#     read_length = as.numeric(readLengths),
-#     avg_q_score = as.numeric(meanprQscore)
-#   )
-#   df <- df[df$read_length > 0 & df$avg_q_score >= 0, ]
-#   
-#   # Decide if log scale needed
-#   use_log <- max(df$read_length) > 6000
-#   y_scale <- if (use_log) scale_y_log10(labels = scales::comma) else scale_y_continuous(labels = scales::comma)
-#   
-#   # ---- Main hexbin ----
-#   p_main <- ggplot(df, aes(x = avg_q_score, y = read_length)) +
-#     stat_binhex(bins = 40) +
-#     scale_fill_viridis_c(name = "Number of Reads", option = "magma") +
-#     y_scale +
-#     labs(x = "Phred Quality", y = "Read Length (bp)") +
-#     theme_minimal(base_size = 15) +
-#     theme(
-#       panel.grid = element_blank(),
-#       legend.position = "right"
-#     )
-#   
-#   # ---- Top histogram (Quality) ----
-#   p_top <- ggplot(df, aes(x = avg_q_score)) +
-#     geom_histogram(bins = 40, fill = "grey50", color = "grey30") +
-#     theme_minimal() +
-#     theme(
-#       axis.title.x = element_blank(),
-#       axis.text.x  = element_blank(),
-#       axis.ticks.x = element_blank(),
-#       panel.grid = element_blank()
-#     )
-#   
-#   # ---- Left histogram (Read length) ----
-#   p_left <- ggplot(df, aes(x = read_length)) +
-#     geom_histogram(bins = 40, fill = "grey50", color = "grey30") +
-#     coord_flip() +
-#     theme_minimal() +
-#     theme(
-#       axis.title.y = element_blank(),
-#       axis.text.y  = element_blank(),
-#       axis.ticks.y = element_blank(),
-#       panel.grid = element_blank()
-#     )
-#   
-#   # ---- Empty filler ----
-#   p_empty <- ggplot() + theme_void()
-#   
-#   # ---- Assemble rectangular layout ----
-#   final_plot <- (p_empty | p_top) /
-#     (p_left  | p_main) +
-#     plot_annotation(title = "Read Length vs Mean Quality") &
-#     theme(plot.title = element_text(size = 18, face = "bold"))
-#   
-#   return(final_plot)
-# }
-
 
 
 
@@ -263,19 +337,19 @@ make_per_position_plot <- function(perPosQuality, window = 2000) {
   df <- perPosQuality |>
     dplyr::group_by(bin) |>
     dplyr::summarise(
-      q10    = quantile(mean, 0.10, na.rm = TRUE),
-      q25    = quantile(mean, 0.25, na.rm = TRUE),
-      median = median(mean, na.rm = TRUE),
-      q75    = quantile(mean, 0.75, na.rm = TRUE),
-      q90    = quantile(mean, 0.90, na.rm = TRUE)
+      q10    = stats::quantile(mean, 0.10, na.rm = TRUE),
+      q25    = stats::quantile(mean, 0.25, na.rm = TRUE),
+      median = stats::median(mean, na.rm = TRUE),
+      q75    = stats::quantile(mean, 0.75, na.rm = TRUE),
+      q90    = stats::quantile(mean, 0.90, na.rm = TRUE)
     )
   
   df$pos <- df$bin * window
   
   # Smooth curves
   smooth_loess <- function(x, y) {
-    fit <- loess(y ~ x, span = 0.3)
-    predict(fit)
+    fit <- stats::loess(y ~ x, span = 0.3)
+    stats::predict(fit)
   }
   
   df$median_s <- smooth_loess(df$pos, df$median)
@@ -284,103 +358,70 @@ make_per_position_plot <- function(perPosQuality, window = 2000) {
   df$q10_s    <- smooth_loess(df$pos, df$q10)
   df$q90_s    <- smooth_loess(df$pos, df$q90)
   
-  ggplot(df, aes(x = pos)) +
+  ggplot2::ggplot(df, ggplot2::aes(x = pos)) +
     
     # Outer 10–90% band
-    geom_ribbon(
-      aes(
+    ggplot2::geom_ribbon(
+      ggplot2::aes(
         ymin = q10_s,
         ymax = q90_s
-        # , fill = "10–90% Range"    # <-- LEGEND CODE COMMENTED
+        # , fill = "10–90% Range"
       ),
       fill = "grey70", alpha = 0.4, color = NA
     ) +
     
     # Inner 25–75% band
-    geom_ribbon(
-      aes(
+    ggplot2::geom_ribbon(
+      ggplot2::aes(
         ymin = q25_s,
         ymax = q75_s
-        # , fill = "25–75% IQR"       # <-- LEGEND CODE COMMENTED
+        # , fill = "25–75% IQR"
       ),
       fill = "#56B4E9", alpha = 0.6, color = NA
     ) +
     
     # Median line
-    geom_line(
-      aes(
+    ggplot2::geom_line(
+      ggplot2::aes(
         y = median_s
-        # , color = "Median (Smoothed)"  # <-- LEGEND CODE COMMENTED
+        # , color = "Median (Smoothed)"
       ),
       color = "#0072B2", linewidth = 1.4
     ) +
     
-    labs(
-      title = "Per-Read Quality Across Sequencing Read Length",
+    ggplot2::labs(
+      title = "Per-Position Quality",
       subtitle = "Binned at 2000 bp",
       x = "Read Position (bp)",
       y = "Phred Q-Score"
     ) +
     
-    theme_minimal(base_size = 15) +
-    theme(
-      panel.grid.major.x = element_line(color = "grey90", linewidth = 0.3),
-      panel.grid.minor.x = element_blank(),
-      panel.grid.major.y = element_line(color = "grey90", linewidth = 0.3),
-      panel.grid.minor.y = element_blank(),
-      axis.line          = element_line(color = "black", linewidth = 0.6),
-      axis.ticks         = element_line(color = "black", linewidth = 0.6),
-      plot.title         = element_text(face = "bold", hjust = 0),
-      plot.subtitle      = element_text(hjust = 0),
-      legend.position    = "none"       # <-- Keep legend hidden
+    ggplot2::theme_minimal(base_size = 15) +
+    ggplot2::theme(
+      panel.grid.major.x = ggplot2::element_line(color = "grey90", linewidth = 0.3),
+      panel.grid.minor.x = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_line(color = "grey90", linewidth = 0.3),
+      panel.grid.minor.y = ggplot2::element_blank(),
+      axis.line          = ggplot2::element_line(color = "black", linewidth = 0.6),
+      axis.ticks         = ggplot2::element_line(color = "black", linewidth = 0.6),
+      plot.title         = ggplot2::element_text(face = "bold", hjust = 0),
+      plot.subtitle      = ggplot2::element_text(hjust = 0),
+      legend.position    = "none"
     ) +
     
-    scale_x_continuous(
+    ggplot2::scale_x_continuous(
       limits = c(0, max(df$pos) + 10000),
       labels = function(x) paste0(x / 1000, "k"),
       breaks = scales::extended_breaks(n = 15),
       expand = c(0, 0)
     ) +
     
-    scale_y_continuous(
+    ggplot2::scale_y_continuous(
       breaks = scales::pretty_breaks(n = 10),
       expand = c(0, 0)
     )
-  
-  # scale_fill_manual(...)   # <-- LEGEND CODE COMMENTED OUT
-  # scale_color_manual(...)  # <-- LEGEND CODE COMMENTED OUT
-  
-  #+ #all legend related code
-  # scale_fill_manual(
-  #   name = "Quality Summary",
-  #   values = c(
-  #     "10–90% Range" = "grey70",
-  #     "25–75% IQR"   = "#56B4E9"
-  #   )
-  # ) +
-  # scale_color_manual(
-  #   name = "Quality Summary",
-  #   values = c(
-  #     "Median (Smoothed)" = "#0072B2"
-  #   )
-  # )
 }
 
-
-
-
-
-
-
-
-# ---- Benchmark test ----
-if (TRUE) {   
-  t <- system.time({
-    qc_obj <- QualPlot(testObj, folder_path)
-  })
-  
-  print(t)
-}
 
 
 # ==== How to use: Example Usage ====
