@@ -17,6 +17,9 @@ CreateReport <- function(
   code_folding <- match.arg(code_folding)
   
   path <- normalizePath(path, winslash = "/", mustWork = FALSE)
+  if (!grepl("\\.Rmd$", path, ignore.case = TRUE)) {
+    path <- paste0(path, ".Rmd")
+  }
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
   
   if (file.exists(path) && !overwrite) {
