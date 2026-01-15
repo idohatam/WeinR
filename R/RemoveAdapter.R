@@ -1,3 +1,55 @@
+#' Trim adapters and split chimeric reads (internal)
+#'
+#' Internal helper that searches for an adapter sequence within reads from a
+#' single-file QC object, trims adapter occurrences near read ends, and optionally
+#' splits reads with internal adapter hits into fragments (chimeric read handling).
+#' Filtered/trimmed reads are written to disk and a summary is stored in
+#' \code{qc_obj@metadata}.
+#'
+#' @param qc_obj A \code{LongReadQC} (or compatible) object containing exactly one
+#'   file in \code{@files}. This function operates on a single file at a time.
+#' @param adapterSeq Character(1). Adapter sequence (DNA alphabet) to search for.
+#' @param MaxMismatchEnd Integer(1). Maximum mismatches allowed when matching the
+#'   adapter sequence.
+#' @param MinOverlapEnd Integer(1). Maximum distance from either end (5' or 3')
+#'   within which an adapter hit is treated as an end adapter and trimmed.
+#' @param MinInternalDistance Integer(1). Minimum distance from either end required
+#'   for an adapter hit to be considered "internal" (used for chimera splitting).
+#' @param MinFragmentLength Integer(1). Minimum fragment length to keep after
+#'   trimming/splitting.
+#' @param OutDir Character(1). Output directory. Created if it does not exist.
+#' @param OutFileType Character vector specifying output format(s). Supported values
+#'   are \code{"fastq"}, \code{"fasta"}, and \code{"bam"} (as implemented by
+#'   \code{WriteReadOutputs()}). Multiple formats may be requested.
+#' @param OutFile Character(1) or \code{NULL}. Optional output filename stem used
+#'   for naming outputs.
+#' @param verbose Logical(1). If \code{TRUE}, prints progress messages.
+#'
+#' @return The updated \code{qc_obj} with \code{$adapter_summary} stored in
+#'   \code{qc_obj@metadata[[file]]}.
+#'
+#' @details
+#' Adapter detection uses \code{Biostrings::vmatchPattern()} with a mismatch
+#' threshold. Hits within \code{MinOverlapEnd} of read ends are trimmed. Reads with
+#' multiple internal adapter hits can be split into fragments, and fragments shorter
+#' than \code{MinFragmentLength} are discarded.
+#'
+#' @examples
+#' \dontrun{
+#' qc_obj2 <- RemoveAdapter(
+#'   qc_obj,
+#'   adapterSeq = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA",
+#'   MaxMismatchEnd = 3,
+#'   MinOverlapEnd = 20,
+#'   MinInternalDistance = 100,
+#'   MinFragmentLength = 200,
+#'   OutDir = tempdir(),
+#'   OutFileType = "fastq",
+#'   verbose = TRUE
+#' )
+#' }
+#'
+#' @keywords internal
 RemoveAdapter <- function(qc_obj,
                           adapterSeq,
                           MaxMismatchEnd = 3,
@@ -164,16 +216,8 @@ RemoveAdapter <- function(qc_obj,
   
   ## Update metadata
   qc_obj@metadata[[fpath]]$adapter_summary <- list(
-    adapter_seq = adapterSeq,
-    max_mismatch = MaxMismatchEnd,
-    min_overlap = MinOverlapEnd,
-    min_internal_distance = MinInternalDistance,
     reads_before = n_reads,
     reads_after  = length(all_trimmed),
-    yield_before = sum(read_widths),
-    yield_after  = sum(Biostrings::width(all_trimmed)),
-    internal_chimeras = length(chimeric_frags),
-    trim_date = Sys.time(),
     output_paths = out_paths
   )
   

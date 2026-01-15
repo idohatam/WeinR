@@ -1,3 +1,32 @@
+#' Trim reads from the start and/or end (internal)
+#'
+#' Internal helper that trims reads for a single input file using \code{Start} and
+#' \code{End} offsets and writes trimmed reads to disk. A trim summary is stored in
+#' \code{qc_obj@metadata}.
+#'
+#' @param qc_obj A QC S4 object containing \code{@files}.
+#' @param Start Integer(1) or \code{NULL}. Number of bases to remove from the start
+#'   of each read. If \code{NULL}, no start trimming is applied.
+#' @param End Integer(1) or \code{NULL}. Number of bases to remove from the end of
+#'   each read. If \code{NULL}, no end trimming is applied.
+#' @param FilePath Character(1) or \code{NULL}. Optional file path to trim. If
+#'   \code{NULL}, uses the first file in \code{qc_obj@files}.
+#' @param OutDir Character(1). Output directory. Created if it does not exist.
+#' @param OutFile Character(1) or \code{NULL}. Optional output filename stem. If
+#'   provided, \code{RemoveExt(OutFile)} is used as the base name.
+#' @param OutFileType Character vector specifying output format(s). Supported values
+#'   are \code{"fastq"}, \code{"fasta"}, and \code{"bam"} (as implemented by
+#'   \code{WriteReadOutputs()}). Multiple formats may be requested.
+#'
+#' @return The updated \code{qc_obj} with \code{$trim_summary} stored in
+#'   \code{qc_obj@metadata[[original_file]]}.
+#'
+#' @examples
+#' \dontrun{
+#' qc_obj2 <- TrimLong(qc_obj, Start = 10, End = 5, OutDir = tempdir())
+#' }
+#'
+#' @keywords internal
 TrimLong <- function(qc_obj,
                      Start = NULL,
                      End = NULL,
@@ -36,11 +65,7 @@ TrimLong <- function(qc_obj,
   qc_obj@metadata[[OriginalFPath]]$trim_summary <- list(
     file_out = out_paths[[1]],
     reads_before = length(reads),
-    reads_after = length(trimmed_reads),
-    start_trim = ifelse(is.null(Start), 0, Start),
-    end_trim = ifelse(is.null(End), 0, End),
-    yield_after = sum(Biostrings::width(trimmed_reads)),
-    trim_date = Sys.time()
+    reads_after = length(trimmed_reads)
   )
   
   base::return(qc_obj)
