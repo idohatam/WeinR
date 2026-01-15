@@ -1,3 +1,50 @@
+#' Trim adapters and/or read ends across all files in a LongReadQC object
+#'
+#' Runs a trimming workflow for each file in a \code{LongReadQC} object. If
+#' \code{AdapterSeq} is provided, adapter trimming is performed first. If
+#' \code{Start} and/or \code{End} are provided, reads are then trimmed from the
+#' 5' and/or 3' ends. Trimming results and output paths are recorded per file in
+#' \code{qc_obj@metadata}.
+#'
+#' @param qc_obj A \code{LongReadQC} object.
+#' @param OutDir Character(1). Output directory where trimmed read files will be
+#'   written. Created if it does not exist.
+#' @param AdapterSeq Character(1) or \code{NULL}. Adapter sequence to remove. If
+#'   \code{NULL}, adapter trimming is skipped.
+#' @param MaxMismatchEnd Integer(1). Maximum mismatches allowed when matching the adapter.
+#' @param MinOverlapEnd Integer(1). Maximum distance from either end within which an
+#'   adapter hit is treated as an end adapter and trimmed.
+#' @param MinInternalDistance Integer(1). Minimum distance from either end for an
+#'   adapter hit to be considered internal (chimera splitting).
+#' @param MinFragmentLength Integer(1). Minimum fragment length to keep after trimming.
+#' @param Start Integer(1) or \code{NULL}. Number of bases to remove from the 5' end.
+#'   If \code{NULL}, no 5' trimming is applied.
+#' @param End Integer(1) or \code{NULL}. Number of bases to remove from the 3' end.
+#'   If \code{NULL}, no 3' trimming is applied.
+#' @param OutFileType Character vector specifying output format(s). Supported values
+#'   are \code{"fastq"}, \code{"fasta"}, and \code{"bam"}. Multiple formats may be
+#'   requested.
+#' @param verbose Logical(1). If \code{TRUE}, prints progress messages.
+#'
+#' @return A \code{LongReadQC} object with per-file trimming results stored in
+#'   \code{qc_obj@metadata[[file]]} (e.g., \code{$adapter_summary}, \code{$trim_summary}).
+#'
+#' @seealso \code{\link{RemoveAdapter}} and \code{\link{TrimLong}}.
+#'
+#' @examples
+#' \dontrun{
+#' qc_trim <- QualTrim(
+#'   qc_obj,
+#'   OutDir = "trimmed_reads",
+#'   AdapterSeq = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA",
+#'   Start = 10,
+#'   End = 5,
+#'   OutFileType = "fastq",
+#'   verbose = TRUE
+#' )
+#' }
+#'
+#' @export
 QualTrim <- function(qc_obj,
                      OutDir = ".",
                      AdapterSeq = NULL,

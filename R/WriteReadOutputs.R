@@ -1,3 +1,35 @@
+#' Write reads to one or more output formats (internal)
+#'
+#' Internal helper that writes a read set to disk in one or more formats.
+#' Supported output formats are FASTQ, FASTA, and BAM.
+#'
+#' @param reads A \code{Biostrings::QualityScaledDNAStringSet} (or compatible
+#'   \code{XStringSet}) containing reads to write.
+#' @param base_name Character(1). Output filename stem (without extension).
+#' @param OutDir Character(1). Output directory. Created if it does not exist.
+#' @param OutFileType Character vector specifying output format(s). Supported values
+#'   are \code{"fastq"}, \code{"fasta"}, and \code{"bam"}. Multiple formats may be
+#'   requested.
+#'
+#' @return A character vector of output file paths (one per requested format).
+#'
+#' @details
+#' FASTA/FASTQ outputs are written using \code{Biostrings::writeXStringSet()}.
+#' BAM output is created by writing a temporary SAM file and converting it via
+#' \code{Rsamtools::asBam()}.
+#'
+#' @examples
+#' # Create a tiny read set and write FASTA + FASTQ to a temp directory
+#' reads <- Biostrings::QualityScaledDNAStringSet(
+#'   Biostrings::DNAStringSet(c("ACGT", "AAAA")),
+#'   BStringSet(c("IIII", "####"))
+#' )
+#' names(reads) <- c("r1", "r2")
+#' out <- WriteReadOutputs(reads, base_name = "toy", OutDir = tempdir(),
+#'                         OutFileType = c("fasta", "fastq"))
+#' out
+#'
+#' @keywords internal
 WriteReadOutputs <- function(reads, base_name, OutDir = ".", OutFileType = c("fastq")) {
   # Ensure output directory exists
   if (!dir.exists(OutDir)) dir.create(OutDir, recursive = TRUE)

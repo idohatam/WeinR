@@ -1,15 +1,40 @@
-#' Run filtering workflow across all files in a LongReadQC object
+#' Filter reads across all files in a LongReadQC object
 #'
-#' @param qc_obj A LongReadQC object (with metrics already filled by QualMat()).
-#' @param OutDir Directory where filtered read files will be saved.
-#' @param MinAvgQS Minimum per-read average quality score threshold.
-#' @param MinLength Minimum read length threshold.
-#' @param MaxNumberNs Maximum allowed number of Ns per read.
-#' @param OutFileType Output format(s): "fastq", "fasta", or "bam".
+#' Applies per-read filters (mean Q-score, read length, and N-count) to each file
+#' in a \code{LongReadQC} object and writes filtered reads to disk. A filtering
+#' summary and output paths are stored in \code{qc_obj@metadata} for each file.
 #'
-#' @return The updated LongReadQC object with filtering results in metadata.
+#' @param qc_obj A \code{LongReadQC} object with per-read metrics already computed
+#'   (e.g., via \code{QualMat()}).
+#' @param OutDir Character(1). Output directory where filtered read files will be
+#'   written. Created if it does not exist.
+#' @param MinAvgQS Numeric(1). Minimum mean per-read Q-score required to keep a read.
+#' @param MinLength Integer(1). Minimum read length required to keep a read.
+#' @param MaxNumberNs Integer(1). Maximum number of \code{N} bases allowed per read.
+#' @param OutFileType Character vector specifying output format(s). Supported values
+#'   are \code{"fastq"}, \code{"fasta"}, and \code{"bam"}. Multiple formats may be
+#'   requested.
+#'
+#' @return A \code{LongReadQC} object with per-file filtering results stored in
+#'   \code{qc_obj@metadata[[file]]$filter_summary}.
+#'
+#' @seealso \code{\link{FilterLong}} for single-file filtering and
+#'   \code{\link{QualMat}} for computing per-read metrics used by filtering.
+#'
+#' @examples
+#' \dontrun{
+#' qc_obj <- QualMat(qc_obj)  # ensure metrics exist first
+#' qc_filt <- QualFilter(
+#'   qc_obj,
+#'   OutDir = "filtered_reads",
+#'   MinAvgQS = 20,
+#'   MinLength = 100,
+#'   MaxNumberNs = 2,
+#'   OutFileType = c("fastq", "fasta")
+#' )
+#' }
+#'
 #' @export
-
 QualFilter <- function(qc_obj,
                        OutDir = ".",
                        MinAvgQS = 20,

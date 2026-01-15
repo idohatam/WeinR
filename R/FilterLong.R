@@ -1,3 +1,40 @@
+#' Filter long-read sequences using QC metrics (internal)
+#'
+#' Internal helper that filters reads for a single file represented inside a QC
+#' object using per-read metrics (mean Q-score, read length, and N-count). Reads
+#' that pass are written to disk, and a filter summary is stored in
+#' \code{qc_obj@metadata[[file]]}.
+#'
+#' @param qc_obj A QC S4 object containing \code{@files} and \code{@metrics}.
+#' @param MinAvgQS Numeric(1). Minimum mean per-read Q-score to keep a read.
+#' @param MinLength Integer(1). Minimum read length to keep a read.
+#' @param MaxNumberNs Integer(1). Maximum allowed number of N bases per read.
+#' @param OutFileType Character vector specifying output format(s).
+#'   Supported values are \code{"fastq"}, \code{"bam"}, and \code{"fasta"}.
+#'   Multiple formats may be requested.
+#' @param OutDir Character(1). Output directory. Created if it does not exist.
+#'
+#' @return The updated \code{qc_obj}. If no reads pass filters, the input
+#'   \code{qc_obj} is returned unchanged.
+#'
+#' @details
+#' Output file types are validated using \code{match.arg()}. Files are written
+#' using \code{WriteReadOutputs()}, and a summary of filtering results is stored
+#' in \code{qc_obj@metadata}.
+#'
+#' @examples
+#' \dontrun{
+#' qc_obj2 <- FilterLong(
+#'   qc_obj,
+#'   MinAvgQS = 20,
+#'   MinLength = 100,
+#'   MaxNumberNs = 2,
+#'   OutFileType = c("fastq", "fasta"),
+#'   OutDir = tempdir()
+#' )
+#' }
+#'
+#' @keywords internal
 FilterLong <- function(qc_obj,
                        MinAvgQS = 20,
                        MinLength = 100,
@@ -50,13 +87,6 @@ FilterLong <- function(qc_obj,
     filter_summary = list(
       reads_before = length(reads),
       reads_after  = length(filtered_reads),
-      yield_before = sum(Biostrings::width(reads)),
-      yield_after  = sum(Biostrings::width(filtered_reads)),
-      filter_params = list(
-        MinAvgQS = MinAvgQS,
-        MinLength = MinLength,
-        MaxNumberNs = MaxNumberNs
-      ),
       output_paths = out_paths,
       filter_date = Sys.time()
     )
