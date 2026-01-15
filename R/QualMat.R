@@ -38,20 +38,15 @@
 
 QualMat <- function(qc_obj, stringset, filename){
   
-  #dna <- Biostrings::DNAStringSet(stringset)
-  #quals <- Biostrings::quality(stringset)
   seqNames <- names(stringset)
   
   #calculate metrics
   
   #LENGTH
-  #lengths <- Biostrings::width(dna)
-  #yield <- sum(lengths)
   lengths <- Biostrings::width(Biostrings::DNAStringSet(stringset))
   yield <- sum(lengths)
  
   #calculate base frequency
-  #af <- Biostrings::alphabetFrequency(dna)
   af <- Biostrings::alphabetFrequency(Biostrings::DNAStringSet(stringset))
   
   #N content per read              
@@ -70,14 +65,13 @@ QualMat <- function(qc_obj, stringset, filename){
   
   #Quality scores
   #per file
-  #qual_list <- lapply(as.character(quals), function(q) utf8ToInt(q) - 33)
   qual_list <- lapply(as.character(Biostrings::quality(stringset)), function(q) utf8ToInt(q) - 33)
   avgQscore <- mean(unlist(qual_list))
   
   #per read
   perReadQscore <- lapply(qual_list, function(q) mean(q))
   
-  #calculate per position messages
+  #per position
   q_stats <- chunked_quality_per_position(Biostrings::quality(stringset), chunk_size = 5000)
   
   #calculate summary metrics
@@ -102,13 +96,14 @@ QualMat <- function(qc_obj, stringset, filename){
     prGCcontent = as.list(perReadGC)
   )
   
-  # Add summary metrics to dataframe
+  # Add summary metrics 
   summary_df <- data.frame(
     file = filename,
     yield = yield,
     N50 = N50,
     N90 = N90,
     avgQscore = avgQscore,
+    `N count` = sum(N),
     stringsAsFactors = FALSE
   )
   qc_obj@summary_metrics <- rbind(qc_obj@summary_metrics, summary_df)
@@ -116,184 +111,6 @@ QualMat <- function(qc_obj, stringset, filename){
   #return the object
   base::return(qc_obj)
 }
-
-  # Chunked per-position quality summary for long reads
-chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
-    qual_list <- as(qs_dna, "list")
-    read_lengths <- Biostrings::width(qs_dna)
-    max_len <- max(read_lengths)
-    
-    # Prepare list to store results per chunk
-    chunk_stats <- list()
-    
-    # Process in chunks
-    for (start_pos in seq(1, max_len, by = chunk_size)) {
-      end_pos <- min(start_pos + chunk_size - 1, max_len)
-      
-      # Filter reads that are long enough for this chunk
-      valid_idx <- which(read_lengths >= start_pos)
-      if (length(valid_idx) == 0) next
-      
-      # Extract the relevant chunk for each valid read
-      chunk_mat <- do.call(rbind, lapply(valid_idx, function(i) {
-        q <- as.numeric(qual_list[[i]])
-        q_chunk <- q[start_pos:min(end_pos, length(q))]
-        # Pad if last chunk extends beyond read length
-        if (length(q_chunk) < (end_pos - start_pos + 1)) {
-          q_chunk <- c(q_chunk, rep(NA, (end_pos - start_pos + 1) - length(q_chunk)))
-        }
-        q_chunk
-      }))
-      
-      # Compute per-position statistics
-      mean_q <- matrixStats::colMeans2(chunk_mat, na.rm = TRUE)
-      med_q  <- matrixStats::colMedians(chunk_mat, na.rm = TRUE)
-      q1_q   <- matrixStats::colQuantiles(chunk_mat, probs = 0.25, na.rm = TRUE)
-      q3_q   <- matrixStats::colQuantiles(chunk_mat, probs = 0.75, na.rm = TRUE)
-      
-      # Build results table for this chunk
-      chunk_df <- data.frame(
-        position = seq(start_pos, end_pos),
-        mean = mean_q,
-        median = med_q,
-        q25 = q1_q,
-        q75 = q3_q
-      )
-      
-      chunk_stats[[length(chunk_stats) + 1]] <- chunk_df
-    }
-    
-    # Combine all chunks
-    do.call(rbind, chunk_stats)
-}
-
-
-BenchmarkQualMat <- function(qc_obj, stringset, filename){
-  functionstart <- Sys.time()
-  #dna <- Biostrings::DNAStringSet(stringset)
-  #quals <- Biostrings::quality(stringset)
-  seqNames <- names(stringset)
-  
-  #calculate metrics
-  
-  #LENGTH
-  #lengths <- Biostrings::width(dna)
-  #yield <- sum(lengths)
-  lt <- Sys.time()
-  lengths <- Biostrings::width(Biostrings::DNAStringSet(stringset))
-  yield <- sum(lengths)
-  lte <- Sys.time()
-  print('length and yield calculation:')
-  print(lte - lt)
-  
-  #calculate base frequency
-  #af <- Biostrings::alphabetFrequency(dna)
-  aft <- Sys.time()
-  af <- Biostrings::alphabetFrequency(Biostrings::DNAStringSet(stringset))
-  afte <- Sys.time()
-  print('alphabetfrequency calculations:')
-  print(afte - aft)
-  
-  
-  #N content per read  
-  ns <- Sys.time()
-  N <- af[,'N']
-  
-  #GC CONTENT 
-  #per read
-  perReadGC <- (af[,'G'] + af[,'C'])/lengths
-  
-  #per file
-  perFileGC <- sum(af[,'G']+ af[,'C'])/yield
-  afe <- Sys.time()
-  print('N and GC calculations:')
-  print(afe - ns)
-  #per position gc content
-  # dataframe, 4 columns for each base: each has proportion of given base
-  # row for each read
-  
-  #Quality scores
-  #per file
-  #qual_list <- lapply(as.character(quals), function(q) utf8ToInt(q) - 33)
-  qt <- Sys.time()
-  qual_list <- lapply(as.character(Biostrings::quality(stringset)), function(q) utf8ToInt(q) - 33)
-  qle <- Sys.time()
-  print('making qual list')
-  print(qle - qt)
-  
-  ms <- Sys.time()
-  avgQscore <- mean(unlist(qual_list))
-  me <- Sys.time()
-  print('per file quality scores')
-  print(me - ms)
-  
-  #per read
-  qre <- Sys.time()
-  perReadQscore <- lapply(qual_list, function(q) mean(q))
-  qe <- Sys.time()
-  print('per read quality scores')
-  print(qe - qre)
-  
-  #calculate per position messages
-  qs <- Sys.time()
-  q_stats <- chunked_quality_per_position(Biostrings::quality(stringset), chunk_size = 5000)
-  qse <- Sys.time()
-  print('per position q score calculation:')
-  print(qse - qs)
-  
-  #calculate summary metrics
-  #N50
-  ns <- Sys.time()
-  decreasinglengths <- sort(lengths, decreasing = TRUE)
-  tmp <- cumsum(decreasinglengths)
-  N50 <- decreasinglengths[which(tmp >= yield/2)[1]]
-  
-  #N90
-  decreasinglengths <- sort(lengths, decreasing = TRUE)
-  tmp <- cumsum(decreasinglengths)
-  N90 <- decreasinglengths[which(tmp >= yield*0.9)[1]]
-  ne <- Sys.time()
-  print('N50/90 calculations')
-  print(ne - ns)
-  
-  #fill object
-  # add metrics 
-  fs <- Sys.time()
-  qc_obj@metrics[[filename]] <- list(
-    readLengths = lengths,
-    meanprQscore = perReadQscore,
-    perPosQuality = q_stats,
-    Ncount = as.list(N),
-    prGCcontent = as.list(perReadGC)
-  )
-  fe <- Sys.time()
-  print('fill metrics')
-  print(fe-fs)
-  
-  # Add summary metrics to dataframe
-  ss <- Sys.time()
-  summary_df <- data.frame(
-    file = filename,
-    yield = yield,
-    N50 = N50,
-    N90 = N90,
-    avgQscore = avgQscore,
-    stringsAsFactors = FALSE
-  )
-  qc_obj@summary_metrics <- rbind(qc_obj@summary_metrics, summary_df)
-  se <- Sys.time()
-  print('fill summary metrics:')
-  print(se - ss)
-  
-  #return the object
-  fe <- Sys.time()
-  print('overall runtime')
-  print(fe - functionstart) 
-  base::return(qc_obj)
-}
-
-library(matrixStats)
-library(data.table)
 
 chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
   
@@ -309,7 +126,98 @@ chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
   chunk_i <- 1
   
   for (start_pos in seq(1, max_len, by = chunk_size)) {
+    end_pos <- min(start_pos + chunk_size - 1, max_len)
+    chunk_len <- end_pos - start_pos + 1
     
+    # Fast validity lookup using monotone read lengths
+    # Reads are sorted so we only find the cutoff once
+    first_valid <- which(read_lengths[ord] >= start_pos)[1]
+    if (is.na(first_valid)) {
+      chunk_i <- chunk_i + 1
+      next # this could be slowing it down - ryan says not to use breaks
+    }
+    
+    valid_idx <- ord[first_valid:length(ord)]
+    n_valid <- length(valid_idx)
+    
+    # Preallocate
+    cm <- matrix(NA_real_, nrow = n_valid, ncol = chunk_len)
+    
+    #slicing
+    for (row in seq_len(n_valid)) {
+      i <- valid_idx[row]
+      q <- qual_list[[i]]
+      end_slice <- min(end_pos, read_lengths[i])
+      len <- end_slice - start_pos + 1
+      if (len > 0) {
+        cm[row, 1:len] <- q[start_pos:end_slice]
+      }
+    }
+    
+    #One call for all quantiles
+    quants <- matrixStats::colQuantiles(cm, probs = c(0.25, 0.5, 0.75), na.rm = TRUE)
+    q25 <- quants[, 1]
+    med <- quants[, 2]
+    q75 <- quants[, 3]
+    
+    # mean still needs its own pass
+    meanv <- matrixStats::colMeans2(cm, na.rm = TRUE)
+    
+    chunk_stats[[chunk_i]] <- data.table::data.table(
+      position = start_pos:end_pos,
+      mean     = meanv,
+      median   = med,
+      q25      = q25,
+      q75      = q75
+    )
+    
+    chunk_i <- chunk_i + 1
+  }
+  
+  data.table::rbindlist(chunk_stats)
+}
+
+library(parallel)
+                                                          # what does the chunk mean????
+testchunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
+  
+  print('convert to list')
+  start <- Sys.time()
+  # Convert once
+  #qual_list <- lapply(as(qs_dna, "list"), as.numeric)
+ 
+  cl <- makeCluster(detectCores() - 1)
+  clusterExport(cl, "qs_list")  # export your object
+  clusterEvalQ(cl, library(Biostrings))  # make sure Biostrings is loaded
+  
+  qual_list <- parLapply(cl, seq_along(qs_dna), function(i) {
+    as.numeric(qs_dna[[i]])
+  })
+  
+  stopCluster(cl)
+  
+  end <- Sys.time()
+  print(end - start)
+  
+  print('calculate max length')
+  start <- Sys.time()
+  read_lengths <- Biostrings::width(qs_dna)
+  max_len <- max(read_lengths)
+  end <- Sys.time()
+  print(end - start)
+  
+  print('order reads ')
+  start <- Sys.time()
+  # Precompute order of reads by length for faster validity lookups
+  ord <- order(read_lengths)
+  end <- Sys.time()
+  print(end - start)
+  
+  chunk_stats <- vector("list", ceiling(max_len / chunk_size))
+  chunk_i <- 1
+  
+  loopstart <- Sys.time()
+  for (start_pos in seq(1, max_len, by = chunk_size)) {
     end_pos <- min(start_pos + chunk_size - 1, max_len)
     chunk_len <- end_pos - start_pos + 1
     
@@ -327,7 +235,7 @@ chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
     # Preallocate
     cm <- matrix(NA_real_, nrow = n_valid, ncol = chunk_len)
     
-    # 🔥 Fast slicing
+    #slicing
     for (row in seq_len(n_valid)) {
       i <- valid_idx[row]
       q <- qual_list[[i]]
@@ -339,15 +247,15 @@ chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
     }
     
     #One call for all quantiles
-    quants <- colQuantiles(cm, probs = c(0.25, 0.5, 0.75), na.rm = TRUE)
+    quants <- matrixStats::colQuantiles(cm, probs = c(0.25, 0.5, 0.75), na.rm = TRUE)
     q25 <- quants[, 1]
     med <- quants[, 2]
     q75 <- quants[, 3]
     
     # mean still needs its own pass
-    meanv <- colMeans2(cm, na.rm = TRUE)
+    meanv <- matrixStats::colMeans2(cm, na.rm = TRUE)
     
-    chunk_stats[[chunk_i]] <- data.table(
+    chunk_stats[[chunk_i]] <- data.table::data.table(
       position = start_pos:end_pos,
       mean     = meanv,
       median   = med,
@@ -357,7 +265,151 @@ chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
     
     chunk_i <- chunk_i + 1
   }
+  loopend <- Sys.time()
+  print('time looping ')
+  print(loopend - loopstart)
   
-  rbindlist(chunk_stats)
+  print('binding')
+  start <- Sys.time()
+  data.table::rbindlist(chunk_stats)
+  end <- Sys.time()
+  print(end - start)
 }
+
+test2chunked_quality_per_position <- function(qs_dna, target_cells = 5e7){
+                                                          # controls memory, not bp
+  ## -----------------------------
+  ## Convert qualities (parallel)
+  ## -----------------------------
+  print("convert to list")
+  start <- Sys.time()
+  
+  cl <- parallel::makeCluster(parallel::detectCores() - 1)
+  parallel::clusterEvalQ(cl, library(Biostrings))
+  parallel::clusterExport(cl, "qs_list")
+  
+  qual_list <- parallel::parLapply(cl, seq_along(qs_dna), function(i) {
+    as.numeric(qs_dna[[i]])
+  })
+  
+  parallel::stopCluster(cl)
+  
+  end <- Sys.time()
+  print(end - start)
+  
+  ## -----------------------------
+  ## Read lengths & ordering
+  ## -----------------------------
+  print("calculate max length")
+  start <- Sys.time()
+  
+  read_lengths <- Biostrings::width(qs_dna)
+  max_len <- max(read_lengths)
+  
+  end <- Sys.time()
+  print(end - start)
+  
+  print("order reads")
+  start <- Sys.time()
+  
+  ord <- order(read_lengths)
+  
+  end <- Sys.time()
+  print(end - start)
+  
+  ## -----------------------------
+  ## Coverage-aware chunking
+  ## -----------------------------
+  print("compute coverage & chunks")
+  start <- Sys.time()
+  
+  # coverage[p] = number of reads with length >= p
+  len_tab <- tabulate(read_lengths, nbins = max_len)
+  coverage <- rev(cumsum(rev(len_tab)))
+  
+  chunk_starts <- integer()
+  pos <- 1L
+  
+  while (pos <= max_len) {
+    cov <- coverage[pos]
+    if (cov == 0L) break
+    
+    chunk_len <- max(1L, floor(target_cells / cov))
+    chunk_starts <- c(chunk_starts, pos)
+    pos <- pos + chunk_len
+  }
+  
+  end <- Sys.time()
+  print(end - start)
+  
+  ## -----------------------------
+  ## Main loop
+  ## -----------------------------
+  chunk_stats <- vector("list", length(chunk_starts))
+  chunk_i <- 1L
+  
+  loopstart <- Sys.time()
+  
+  for (start_pos in chunk_starts) {
+    
+    cov <- coverage[start_pos]
+    if (cov == 0L) {
+      chunk_i <- chunk_i + 1L
+      next
+    }
+    
+    chunk_len <- max(1L, floor(target_cells / cov))
+    end_pos <- min(start_pos + chunk_len - 1L, max_len)
+    
+    # find valid reads (monotone lengths)
+    first_valid <- which(read_lengths[ord] >= start_pos)[1]
+    if (is.na(first_valid)) {
+      chunk_i <- chunk_i + 1L
+      next
+    }
+    
+    valid_idx <- ord[first_valid:length(ord)]
+    n_valid <- length(valid_idx)
+    actual_len <- end_pos - start_pos + 1L
+    
+    # preallocate matrix
+    cm <- matrix(NA_real_, nrow = n_valid, ncol = actual_len)
+    
+    # fill matrix
+    for (row in seq_len(n_valid)) {
+      i <- valid_idx[row]
+      q <- qual_list[[i]]
+      end_slice <- min(end_pos, read_lengths[i])
+      len <- end_slice - start_pos + 1L
+      if (len > 0L) {
+        cm[row, 1:len] <- q[start_pos:end_slice]
+      }
+    }
+    
+    # stats
+    quants <- matrixStats::colQuantiles(
+      cm,
+      probs = c(0.25, 0.5, 0.75),
+      na.rm = TRUE
+    )
+    
+    chunk_stats[[chunk_i]] <- data.table::data.table(
+      position = start_pos:end_pos,
+      mean     = matrixStats::colMeans2(cm, na.rm = TRUE),
+      median   = quants[, 2],
+      q25      = quants[, 1],
+      q75      = quants[, 3]
+    )
+    
+    chunk_i <- chunk_i + 1L
+  }
+  
+  loopend <- Sys.time()
+  
+  out <- data.table::rbindlist(chunk_stats)
+  
+  
+  out
+}
+
 
