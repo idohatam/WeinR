@@ -1,4 +1,4 @@
-Package: longR
+Package: WeinR
 Title: Long-Read Sequencing QC and Processing
 Version: 0.0.0.9000
 Authors@R: 
@@ -8,6 +8,21 @@ Description: Quality control and processing tools for Oxford Nanopore
 License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
 Encoding: UTF-8
+Imports:
+    rmarkdown,
+    knitr,
+    ggplot2,
+    scales,
+    matrixStats,
+    data.table,
+    ggrastr,
+    DT,
+    gridExtra,
+    Biostrings,
+    IRanges,
+    Rsamtools,
+    methods,
+    tools
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.0.0
 Imports:
