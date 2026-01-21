@@ -292,9 +292,6 @@ BenchmarkQualMat <- function(qc_obj, stringset, filename){
   base::return(qc_obj)
 }
 
-library(matrixStats)
-library(data.table)
-
 chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
   
   # Convert once

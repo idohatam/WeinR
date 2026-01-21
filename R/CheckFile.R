@@ -1,35 +1,38 @@
-#' Validate an input file path and infer file type (internal)
+#' Validate an input file path and infer file type
 #'
-#' Internal helper that checks a single file path, warns on extremely large files,
-#' and returns the inferred input type based on the filename extension.
+#' Internal helper that validates a single input file path, issues a warning
+#' for extremely large files, and infers the input type from the filename
+#' extension.
 #'
 #' Supported extensions are BAM (\code{.bam}), FASTQ (\code{.fastq}, \code{.fq}),
 #' and gzipped FASTQ (\code{.fastq.gz}, \code{.fq.gz}).
 #'
-#' @param filePath Character(1). Path to an input file.
+#' @param filePath Character scalar. Path to an input file.
 #'
-#' @return A length-1 character string: one of \code{"bam"}, \code{"fastq"},
-#'   or \code{"fastq.gz"}.
+#' @return A length-1 character string: one of \code{"bam"},
+#'   \code{"fastq"}, or \code{"fastq.gz"}.
 #'
 #' @details
-#' This function is intended for internal use and is not part of the public API.
-#' It errors on invalid paths or unsupported extensions.
+#' This function is intended for internal use only and is not part of the
+#' public API. It errors on invalid paths or unsupported file extensions.
 #'
 #' @examples
-#' # FASTQ example (creates a temporary file)
+#' \dontrun{
+#' # FASTQ example
 #' fq <- tempfile(fileext = ".fastq")
 #' file.create(fq)
-#' CheckFile(fq)
+#' WeinR:::CheckFile(fq)
 #'
-#' # gzipped FASTQ example (still just a temp file name here)
+#' # gzipped FASTQ example
 #' fqgz <- tempfile(fileext = ".fastq.gz")
 #' file.create(fqgz)
-#' CheckFile(fqgz)
+#' WeinR:::CheckFile(fqgz)
 #'
 #' # BAM example
 #' bam <- tempfile(fileext = ".bam")
 #' file.create(bam)
-#' CheckFile(bam)
+#' WeinR:::CheckFile(bam)
+#' }
 #'
 #' @keywords internal
 CheckFile <- function(filePath) 

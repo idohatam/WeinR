@@ -1,0 +1,308 @@
+/* ==========================================================
+   Accessible, colorblind-friendly stylesheet (Okabe–Ito)
+   R Markdown html_document (Bootstrap-based)
+   ========================================================== */
+
+:root {
+  --bg: #F8FAFB;
+  --surface: #FFFFFF;
+  --text: #0B0C0C;
+  --muted: #4C4F52;
+  --border: #E3E7ED;
+
+  --c-blue:  #0072B2;
+  --c-orange:#E69F00;
+  --c-verm:  #D55E00;
+  --c-sky:   #56B4E9;
+  --c-green: #009E73;
+  --c-yellow:#F0E442;
+  --c-pink:  #CC79A7;
+  --c-purple:#7F3C8D;
+
+  --focus: #FFBF47;
+}
+
+/* =======================
+   Global base
+   ======================= */
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI,
+               Roboto, Helvetica, Arial, "Apple Color Emoji",
+               "Segoe UI Emoji";
+  line-height: 1.55;
+  font-size: 16px;
+}
+
+/* ==========================================================
+   Override Bootstrap container width (reduce side gutters)
+   ========================================================== */
+
+.container,
+.container-fluid,
+.main-container {
+  width: 98% !important;
+  max-width: none !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+@media (max-width: 900px) {
+  .container,
+  .container-fluid,
+  .main-container {
+    width: 95% !important;
+  }
+}
+
+/* =======================
+   Titles / metadata
+   ======================= */
+
+h1.title {
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  margin-bottom: 0.25rem;
+}
+
+.subtitle,
+.author,
+.date {
+  color: var(--muted);
+}
+
+/* ==========================================================
+   TOC LAYOUT (fixed-width sidebar + fluid content)
+   ========================================================== */
+
+/* IMPORTANT: remove/avoid any old rules like:
+   .row-fluid .span3 { width: 2% !important; }
+   .row-fluid .span9 { width: 100% !important; }
+*/
+
+/* Turn the main Rmd layout into a 2-column flex row */
+.main-container > .row-fluid,
+.main-container > .row {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 16px !important;
+}
+
+/* Stop Bootstrap float grid from fighting flex */
+.main-container > .row-fluid > [class*="span"],
+.main-container > .row > [class*="span"],
+.main-container > .row > [class*="col-"] {
+  float: none !important;
+}
+
+/* LEFT sidebar column (Bootstrap2 span3 OR Bootstrap col-*) */
+.main-container > .row-fluid > .span3,
+.main-container > .row > .col-sm-3,
+.main-container > .row > .col-md-3,
+.main-container > .row > .col-lg-3,
+.main-container > .row > .col-sm-4,
+.main-container > .row > .col-md-4,
+.main-container > .row > .col-lg-4,
+.tocify-wrapper {
+  flex: 0 0 260px !important;
+  width: 260px !important;
+  min-width: 260px !important;
+  max-width: 260px !important;
+}
+
+/* RIGHT content column (Bootstrap2 span9 OR Bootstrap col-*) */
+.main-container > .row-fluid > .span9,
+.main-container > .row > .col-sm-9,
+.main-container > .row > .col-md-9,
+.main-container > .row > .col-lg-9,
+.main-container > .row > .col-sm-8,
+.main-container > .row > .col-md-8,
+.main-container > .row > .col-lg-8 {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  max-width: 100% !important;
+  min-width: 0 !important; /* prevents weird shrinking/squish */
+}
+
+/* Make the TOC box fill the sidebar width and not collapse */
+#TOC,
+.tocify {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  white-space: normal !important; /* prevents vertical stacked letters */
+  overflow-wrap: anywhere !important;
+}
+
+/* Sticky + scrollable TOC */
+#TOC,
+.tocify {
+  position: sticky !important;
+  top: 16px !important;
+  max-height: calc(100vh - 32px) !important;
+  overflow: auto !important;
+  z-index: 10 !important;
+}
+
+/* Optional: make TOC look cleaner */
+#TOC {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  padding: 10px !important;
+  box-shadow: 0 1px 3px rgba(10,31,68,0.05) !important;
+}
+
+#TOC ul {
+  padding-left: 16px !important;
+  margin: 0 !important;
+}
+
+/* On small screens, drop TOC above content instead of squeezing */
+@media (max-width: 900px) {
+  .main-container > .row-fluid,
+  .main-container > .row {
+    flex-direction: column !important;
+  }
+
+  .main-container > .row-fluid > .span3,
+  .main-container > .row-fluid > .span9,
+  .tocify-wrapper,
+  #TOC,
+  .tocify {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    position: static !important;
+    max-height: none !important;
+  }
+}
+
+/* =======================
+   Section cards
+   ======================= */
+
+.section-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 6px solid var(--c-blue);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin: 20px 0;
+  box-shadow: 0 2px 6px rgba(10, 31, 68, 0.06);
+}
+
+.section-card h2 {
+  margin-top: 0;
+  font-weight: 700;
+}
+
+.section-card h3 {
+  margin-top: 12px;
+  font-weight: 600;
+}
+
+/* =======================
+   Plot behavior (fluid)
+   ======================= */
+
+.section-card figure,
+.section-card .figure {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.section-card img,
+.section-card svg,
+.section-card canvas {
+  display: block;
+  max-width: 100% !important;
+  height: auto !important;
+  border: none !important;
+  border-radius: 10px;
+}
+
+/* =======================
+   DataTables fixes
+   ======================= */
+
+table.dataTable {
+  width: 100% !important;
+}
+
+.dataTables_wrapper {
+  overflow-x: auto;
+}
+
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+table.dataTable.stripe tbody tr.odd {
+  background-color: rgba(86, 180, 233, 0.06);
+}
+
+table.dataTable.hover tbody tr:hover {
+  background-color: rgba(0, 158, 115, 0.08);
+}
+
+/* =======================
+   Code & text
+   ======================= */
+
+pre,
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas,
+               "Liberation Mono", monospace;
+}
+
+pre code {
+  border-radius: 10px !important;
+}
+
+/* =======================
+   Links & focus
+   ======================= */
+
+a,
+a:visited {
+  color: var(--c-blue);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--c-green);
+}
+
+:focus {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* =======================
+   Separators & footer
+   ======================= */
+
+hr.section-sep {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.2rem 0;
+}
+
+.page-footer {
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.9rem;
+  margin-top: 24px;
+}

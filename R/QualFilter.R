@@ -49,7 +49,7 @@ QualFilter <- function(qc_obj,
   
   for (fpath in qc_obj@files) {
     
-    message("\n→ Processing file: ", fpath)
+    message("\n-> Processing file: ", fpath)
     
     # Build single-file subobject
     single_qc <- qc_obj
@@ -76,7 +76,7 @@ QualFilter <- function(qc_obj,
       next
     }
     
-    # Save ONLY this file’s metadata
+    # Save ONLY this file's metadata
     qc_obj@metadata[[fpath]] <- filtered_qc@metadata[[fpath]]
   }
   

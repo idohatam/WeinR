@@ -66,7 +66,7 @@ QualTrim <- function(qc_obj,
   # Loop through each file
   for (fpath in qc_obj@files) {
     
-    message("\n→ Processing file: ", fpath)
+    message("\n-> Processing file: ", fpath)
     
     # Build single-file subobject
     single_qc <- qc_obj

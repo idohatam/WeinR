@@ -1,4 +1,5 @@
 #' Create an HTML QC report from a LongReadQC object
+#'
 #' Writes an R Markdown (`.Rmd`) file to `path` and (optionally) renders it to
 #' an HTML report using `rmarkdown::render()`. The report includes a DT summary
 #' table and plot sections assembled from `mfa` (a `LongReadQC` object).
@@ -28,12 +29,9 @@
 #'   an (invisible) list with element `rmd`.
 #'
 #' @details
-#' This function assumes a stylesheet exists at `<project root>/styles/colorblind.css`,
-#' where `<project root>` is the current working directory (`getwd()`).
-#'
-#' The generated report expects `mfa` to be a `LongReadQC` S4 object with fields
-#' used in the report body (e.g., `@summary_metrics`, `@plots`, `@files`).
-
+#' The stylesheet is shipped with the package at `inst/styles/colorblind.css`.
+#' For portability, it is copied next to the generated `.Rmd` and referenced
+#' using a relative path in the YAML header.
 CreateReport <- function(
     path          = "report.Rmd",
     title         = "My Report",
@@ -51,28 +49,37 @@ CreateReport <- function(
   stopifnot(!is.null(mfa))
   code_folding <- match.arg(code_folding)
   
-  # normalize and ensure .Rmd suffix
+  # Normalize and ensure .Rmd suffix
   path <- normalizePath(path, winslash = "/", mustWork = FALSE)
   if (!grepl("\\.Rmd$", path, ignore.case = TRUE)) {
     path <- paste0(path, ".Rmd")
   }
   
-  # ensure output directory exists
-  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  # Ensure output directory exists
+  out_dir <- dirname(path)
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   
-  # overwrite guard
+  # Overwrite guard
   if (file.exists(path) && !overwrite) {
     stop(
       "File already exists: ", normalizePath(path),
-      "\nSet overwrite = TRUE to replace it."
+      "\nSet overwrite = TRUE to replace it.",
+      call. = FALSE
     )
   }
   
-  css_path <- normalizePath(
-    file.path(getwd(), "styles", "colorblind.css"),
-    winslash = "/",
-    mustWork = FALSE
-  )
+  # Locate package CSS (installed from inst/styles/colorblind.css)
+  pkg_css <- system.file("styles", "colorblind.css", package = "WeinR")
+  if (!nzchar(pkg_css)) {
+    stop("Could not find 'styles/colorblind.css' in the installed WeinR package.", call. = FALSE)
+  }
+  
+  # Copy CSS next to the report for portability (avoid absolute paths in YAML)
+  css_out <- file.path(out_dir, "colorblind.css")
+  ok <- file.copy(pkg_css, css_out, overwrite = TRUE)
+  if (!isTRUE(ok)) {
+    stop("Failed to copy stylesheet to: ", css_out, call. = FALSE)
+  }
   
   yaml <- c(
     "---",
@@ -83,12 +90,13 @@ CreateReport <- function(
     "  html_document:",
     sprintf("    toc: %s", tolower(as.character(toc))),
     "    toc_depth: 3",
+    "    toc_float: true",
     sprintf("    theme: %s", theme),
     sprintf("    highlight: %s", highlight),
     sprintf("    code_folding: %s", code_folding),
     "    df_print: paged",
     "    self_contained: true",
-    sprintf('    css: "%s"', css_path),
+    '    css: "colorblind.css"',
     "params:",
     "  mfa: !r NULL",
     "---",
@@ -101,11 +109,11 @@ CreateReport <- function(
     "knitr::opts_knit$set(root.dir = dirname(knitr::current_input()))",
     "qc <- params$mfa",
     "stopifnot(methods::is(qc, 'LongReadQC'))",
-    "suppressPackageStartupMessages({",
-    "  library(ggplot2)",
-    "  library(DT)",
-    "  library(gridExtra)",
-    "})",
+    "",
+    "# Require suggested packages only when rendering the report",
+    "stopifnot(requireNamespace('ggplot2', quietly = TRUE))",
+    "stopifnot(requireNamespace('DT', quietly = TRUE))",
+    "stopifnot(requireNamespace('gridExtra', quietly = TRUE))",
     "",
     "# Render a gridExtra arrangement to a PNG at a chosen width, then include it",
     "render_grid_png <- function(grobs, max_cols = 3, height_in = 4, dpi = 120) {",
@@ -191,7 +199,7 @@ CreateReport <- function(
     "} else { cat('No quality-vs-length plots available') }",
     "```",
     "",
-    "### **Per-position quality  Binned at 2000 bp**",
+    "### **Per-position quality (binned at 2000 bp)**",
     "```{r, fig.align='center', out.width='100%'}",
     "ppq <- Filter(Negate(is.null), lapply(qc@plots, function(ps) if (is.list(ps)) ps[['per_pos_q']] else NULL))",
     "if (length(ppq)) {",
@@ -217,8 +225,11 @@ CreateReport <- function(
   writeLines(c(yaml, body), con = path)
   
   if (isTRUE(render_html)) {
-    if (!requireNamespace('rmarkdown', quietly = TRUE)) {
-      stop("Package 'rmarkdown' is required to render HTML. Install it via install.packages('rmarkdown').")
+    if (!requireNamespace("rmarkdown", quietly = TRUE)) {
+      stop(
+        "Package 'rmarkdown' is required to render HTML. Install it via install.packages('rmarkdown').",
+        call. = FALSE
+      )
     }
     
     html_out <- rmarkdown::render(
@@ -231,8 +242,11 @@ CreateReport <- function(
     )
     
     if (open_browser) utils::browseURL(html_out)
-    return(invisible(list(rmd = normalizePath(path), html = normalizePath(html_out))))
+    return(invisible(list(
+      rmd  = normalizePath(path, winslash = "/", mustWork = FALSE),
+      html = normalizePath(html_out, winslash = "/", mustWork = FALSE)
+    )))
   }
   
-  invisible(list(rmd = normalizePath(path)))
+  invisible(list(rmd = normalizePath(path, winslash = "/", mustWork = FALSE)))
 }
