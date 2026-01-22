@@ -1,36 +1,34 @@
-#' Import a single sequence file as a QualityScaledDNAStringSet (internal)
+#' Import a single sequence file as a QualityScaledDNAStringSet
 #'
 #' Internal helper that reads one input file (FASTQ/FASTQ.GZ/BAM) and returns a
-#' \code{Biostrings::QualityScaledDNAStringSet}. BAM files are read with
-#' \code{Rsamtools::scanBam()} and converted to a quality-scaled set.
+#' `Biostrings::QualityScaledDNAStringSet`. BAM files are read with
+#' `Rsamtools::scanBam()` and converted to a quality-scaled set.
 #'
-#' @param filePath Character(1). Path to a single input file.
+#' @param filePath Character scalar. Path to a single input file.
 #' @param MinNumReads Integer(1). Minimum number of reads required to keep the file.
-#'   If the file contains fewer reads than this threshold, the function warns and
-#'   returns \code{NULL}.
+#'   If fewer reads are present, the function warns and returns `NULL`.
 #'
-#' @return A \code{Biostrings::QualityScaledDNAStringSet} on success, or \code{NULL}
-#'   if \code{length(x) < MinNumReads}.
+#' @return A `Biostrings::QualityScaledDNAStringSet` on success, or `NULL` if the
+#'   number of reads is less than `MinNumReads`.
 #'
 #' @details
-#' File type is inferred by \code{CheckFile()}. The function errors if reading fails
-#' (e.g., corrupted or malformed input).
+#' File type is inferred by `CheckFile()`. Reading errors are rethrown with a more
+#' informative message (e.g., malformed FASTQ or invalid BAM).
+#'
+#' This function is intended for internal use and is not part of the public API.
 #'
 #' @examples
+#' \dontrun{
 #' # FASTQ example: create a tiny, valid FASTQ file
 #' fq <- tempfile(fileext = ".fastq")
-#' writeLines(c(
-#'   "@r1",
-#'   "ACGT",
-#'   "+",
-#'   "IIII"
-#' ), fq)
-#' x <- ImportFile(fq)
+#' writeLines(c("@r1", "ACGT", "+", "IIII"), fq)
+#' x <- WeinR:::ImportFile(fq)
 #' length(x)
 #'
 #' # MinNumReads example: warn + return NULL if threshold not met
-#' y <- ImportFile(fq, MinNumReads = 2L)
+#' y <- WeinR:::ImportFile(fq, MinNumReads = 2L)
 #' is.null(y)
+#' }
 #'
 #' @keywords internal
 ImportFile <- function(filePath, MinNumReads = 1L) {

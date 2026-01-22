@@ -1,6 +1,8 @@
 #' LongReadQC Class
 #'
 #' An S4 class to store quality control results for long-read sequencing data
+#' 
+#' @importFrom methods setClass setMethod show new
 #'
 #' @slot files character vector of input file paths
 #' @slot metrics named list of data.frames containing per-read quality metrics

@@ -19,15 +19,21 @@
 #' \code{Rsamtools::asBam()}.
 #'
 #' @examples
+#' \dontrun{
 #' # Create a tiny read set and write FASTA + FASTQ to a temp directory
 #' reads <- Biostrings::QualityScaledDNAStringSet(
 #'   Biostrings::DNAStringSet(c("ACGT", "AAAA")),
-#'   BStringSet(c("IIII", "####"))
+#'   Biostrings::BStringSet(c("IIII", "####"))
 #' )
 #' names(reads) <- c("r1", "r2")
-#' out <- WriteReadOutputs(reads, base_name = "toy", OutDir = tempdir(),
-#'                         OutFileType = c("fasta", "fastq"))
+#' out <- WeinR:::WriteReadOutputs(
+#'   reads,
+#'   base_name   = "toy",
+#'   OutDir      = tempdir(),
+#'   OutFileType = c("fasta", "fastq")
+#' )
 #' out
+#' }
 #'
 #' @keywords internal
 WriteReadOutputs <- function(reads, base_name, OutDir = ".", OutFileType = c("fastq")) {
