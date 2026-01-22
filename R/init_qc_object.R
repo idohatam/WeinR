@@ -17,6 +17,7 @@
         N50 = numeric(length(files)),
         N90 = numeric(length(files)),
         avgQscore = numeric(length(files)),
+        `N count` = numeric(length(files)),
         stringsAsFactors = FALSE
       ))
 }
