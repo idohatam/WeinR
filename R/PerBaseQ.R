@@ -1,50 +1,45 @@
-
-library(parallel)
-# what does the chunk mean????
+#' Chunked per-position quality statistics
+#'
+#' Internal helper that computes per-position quality score summaries across a
+#' set of reads by processing positions in chunks, which helps keep peak memory
+#' use bounded for very long reads.
+#'
+#' @param qs_dna A `Biostrings::QualityScaledDNAStringSet` (or compatible) object
+#'   containing per-base quality scores.
+#' @param chunk_size Integer scalar giving the number of positions per chunk.
+#'
+#' @return A `data.table` with columns `position`, `mean`, `median`, `q25`, and
+#'   `q75`.
+#'
+#' @keywords internal
 chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
   
-  print('convert to list')
-  start <- Sys.time()
-  # Convert once
-  #qual_list <- lapply(as(qs_dna, "list"), as.numeric)
+  # Convert qualities to integer vectors once (Phred+33)
+  # Note: `as.numeric()` on the quality object yields Phred scores.
+  cl <- parallel::makeCluster(parallel::detectCores() - 1)
+  on.exit(try(parallel::stopCluster(cl), silent = TRUE), add = TRUE)
   
-  cl <- makeCluster(detectCores() - 1)
-  clusterExport(cl, "qs_list")  # export your object
-  clusterEvalQ(cl, library(Biostrings))  # make sure Biostrings is loaded
+  parallel::clusterExport(cl, "qs_dna", envir = environment())
+  parallel::clusterEvalQ(cl, { library(Biostrings); NULL })
   
-  qual_list <- parLapply(cl, seq_along(qs_dna), function(i) {
+  qual_list <- parallel::parLapply(cl, seq_along(qs_dna), function(i) {
     as.numeric(qs_dna[[i]])
   })
   
-  stopCluster(cl)
-  
-  end <- Sys.time()
-  print(end - start)
-  
-  print('calculate max length')
-  start <- Sys.time()
   read_lengths <- Biostrings::width(qs_dna)
   max_len <- max(read_lengths)
-  end <- Sys.time()
-  print(end - start)
   
-  print('order reads ')
-  start <- Sys.time()
   # Precompute order of reads by length for faster validity lookups
   ord <- order(read_lengths)
-  end <- Sys.time()
-  print(end - start)
   
   chunk_stats <- vector("list", ceiling(max_len / chunk_size))
   chunk_i <- 1
   
-  loopstart <- Sys.time()
   for (start_pos in seq(1, max_len, by = chunk_size)) {
     end_pos <- min(start_pos + chunk_size - 1, max_len)
     chunk_len <- end_pos - start_pos + 1
     
     # Fast validity lookup using monotone read lengths
-    # Reads are sorted so we only find the cutoff once
     first_valid <- which(read_lengths[ord] >= start_pos)[1]
     if (is.na(first_valid)) {
       chunk_i <- chunk_i + 1
@@ -57,7 +52,7 @@ chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
     # Preallocate
     cm <- matrix(NA_real_, nrow = n_valid, ncol = chunk_len)
     
-    #slicing
+    # slicing
     for (row in seq_len(n_valid)) {
       i <- valid_idx[row]
       q <- qual_list[[i]]
@@ -68,7 +63,7 @@ chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
       }
     }
     
-    #One call for all quantiles
+    # One call for all quantiles
     quants <- matrixStats::colQuantiles(cm, probs = c(0.25, 0.5, 0.75), na.rm = TRUE)
     q25 <- quants[, 1]
     med <- quants[, 2]
@@ -87,13 +82,6 @@ chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
     
     chunk_i <- chunk_i + 1
   }
-  loopend <- Sys.time()
-  print('time looping ')
-  print(loopend - loopstart)
   
-  print('binding')
-  start <- Sys.time()
-  data.table::rbindlist(chunk_stats)
-  end <- Sys.time()
-  print(end - start)
+  data.table::rbindlist(chunk_stats, use.names = TRUE, fill = TRUE)
 }
