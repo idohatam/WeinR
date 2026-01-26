@@ -1,25 +1,37 @@
 #' Import a single sequence file as a QualityScaledDNAStringSet
 #'
 #' Internal helper that reads one input file (FASTQ/FASTQ.GZ/BAM) and returns a
-#' `Biostrings::QualityScaledDNAStringSet`. BAM files are read with
-#' `Rsamtools::scanBam()` and converted to a quality-scaled set.
+#' \code{Biostrings::QualityScaledDNAStringSet}. FASTQ inputs are pre-checked with
+#' \code{FastqCheck()} before reading. BAM inputs are opened with
+#' \code{Rsamtools::BamFile()} and read via \code{Rsamtools::scanBam()} then
+#' converted to a quality-scaled set.
 #'
 #' @param filePath Character scalar. Path to a single input file.
 #' @param MinNumReads Integer(1). Minimum number of reads required to keep the file.
-#'   If fewer reads are present, the function warns and returns `NULL`.
+#'   Must be a single positive integer (>= 1). If fewer reads are present, the
+#'   function warns and returns \code{NULL}.
 #'
-#' @return A `Biostrings::QualityScaledDNAStringSet` on success, or `NULL` if the
-#'   number of reads is less than `MinNumReads`.
+#' @return A \code{Biostrings::QualityScaledDNAStringSet} on success, or \code{NULL}
+#'   if the number of reads is less than \code{MinNumReads}.
 #'
 #' @details
-#' File type is inferred by `CheckFile()`. Reading errors are rethrown with a more
-#' informative message (e.g., malformed FASTQ or invalid BAM).
+#' File type is inferred by \code{CheckFile()}. For FASTQ/FASTQ.GZ inputs, the file
+#' is first validated with \code{FastqCheck(filePath, n_records = 100L)}; failures
+#' are rethrown as \dQuote{FASTQ check failed: ...}. Reading failures from
+#' \code{Biostrings::readQualityScaledDNAStringSet()} are rethrown as
+#' \dQuote{FASTQ read failed (corrupted/malformed): ...}.
+#'
+#' For BAM inputs, the file is opened and read with \code{Rsamtools}. Errors while
+#' opening or scanning are rethrown as \dQuote{BAM open failed ...} or
+#' \dQuote{BAM read failed ...}. The function also validates required BAM fields
+#' (\code{seq} and \code{qual}) and checks that their lengths match. If available
+#' and aligned in length, BAM \code{qname} values are used as read names.
 #'
 #' This function is intended for internal use and is not part of the public API.
 #'
 #' @examples
 #' \dontrun{
-#' # FASTQ example: create a tiny, valid FASTQ file
+#' # FASTQ example: create a tiny, valid FASTQ file (1 read)
 #' fq <- tempfile(fileext = ".fastq")
 #' writeLines(c("@r1", "ACGT", "+", "IIII"), fq)
 #' x <- WeinR:::ImportFile(fq)
@@ -28,12 +40,17 @@
 #' # MinNumReads example: warn + return NULL if threshold not met
 #' y <- WeinR:::ImportFile(fq, MinNumReads = 2L)
 #' is.null(y)
+#'
+#' # MinNumReads validation example: errors on invalid values
+#' WeinR:::ImportFile(fq, MinNumReads = 0)
 #' }
 #'
 #' @keywords internal
-ImportFile <- function(filePath, MinNumReads = 1L) {
+ImportFile <- function(filePath,
+                       MinNumReads = 1L) {
   
-  # Validate MinNumReads (empty files will be skipped since MinNumReads >= 1)
+  
+  # validate MinNumReads
   if (is.null(MinNumReads) || !is.numeric(MinNumReads) ||
       length(MinNumReads) != 1L || is.na(MinNumReads) ||
       MinNumReads < 1 || MinNumReads %% 1 != 0) {
@@ -43,8 +60,10 @@ ImportFile <- function(filePath, MinNumReads = 1L) {
   
   infile <- CheckFile(filePath)
   
-  # Read file (catch corruption / unreadable file errors with clearer messaging)
   Output <- if (infile %in% c("fastq", "fastq.gz")) {
+    
+    tryCatch(FastqCheck(filePath, n_records = 100L),
+             error = function(e) stop("FASTQ check failed: ", conditionMessage(e)))
     
     tryCatch(
       Biostrings::readQualityScaledDNAStringSet(filePath),
@@ -55,22 +74,32 @@ ImportFile <- function(filePath, MinNumReads = 1L) {
     
   } else if (infile == "bam") {
     
+    bf <- Rsamtools::BamFile(filePath)
+    on.exit(try(Rsamtools::close(bf), silent = TRUE), add = TRUE)
+    
+    tryCatch(Rsamtools::open(bf),
+             error = function(e) {
+               stop(sprintf("BAM open failed (corrupted/invalid): %s", conditionMessage(e)))
+             })
+    
     bam <- tryCatch(
-      Rsamtools::scanBam(filePath)[[1]],
+      Rsamtools::scanBam(bf)[[1]],
       error = function(e) {
         stop(sprintf("BAM read failed (corrupted/invalid): %s", conditionMessage(e)))
       }
     )
     
+    if (is.null(bam$seq) || is.null(bam$qual)) {
+      stop("BAM missing required fields 'seq' and/or 'qual'.")
+    }
+    if (length(bam$seq) != length(bam$qual)) {
+      stop("BAM 'seq' and 'qual' lengths do not match.")
+    }
+    
     out <- Biostrings::QualityScaledDNAStringSet(bam$seq, bam$qual)
     
-    # Attach read names if available (only warn if there are reads)
-    if (length(out) > 0L) {
-      if (!is.null(bam$qname) && length(bam$qname) == length(out)) {
-        names(out) <- bam$qname
-      } else {
-        warning("BAM qname missing or length mismatch; read names not attached.")
-      }
+    if (length(out) > 0L && !is.null(bam$qname) && length(bam$qname) == length(out)) {
+      names(out) <- bam$qname
     }
     
     out
@@ -86,5 +115,5 @@ ImportFile <- function(filePath, MinNumReads = 1L) {
     return(NULL)
   }
   
- return (Output)
+  Output
 }
