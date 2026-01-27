@@ -28,8 +28,7 @@ LinkAndReport <- function(
   dir.create(reports_dir, showWarnings = FALSE, recursive = TRUE)
   
   report_path <- file.path(reports_dir, outpath)
-  
-  ## ---- FORCE CHECK ---------------------------------------------------------
+
   rmd_path  <- paste0(report_path, ".Rmd")
   html_path <- paste0(report_path, ".html")
   
@@ -41,14 +40,13 @@ LinkAndReport <- function(
       call. = FALSE
     )
   }
-  ## -------------------------------------------------------------------------
   
   if (isTRUE(render_report)) {
     CreateReport(
       mfa         = qc_obj,
       path        = report_path,
       title       = title,
-      overwrite   = TRUE,   # controlled by force check above
+      overwrite   = TRUE, 
       render_html = TRUE
     )
   }

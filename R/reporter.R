@@ -67,12 +67,33 @@ CreateReport <- function(
       call. = FALSE
     )
   }
-  
+  ###########
+  ###########
+  ###########
+  ###########
   # Locate package CSS (installed from inst/styles/colorblind.css)
-  pkg_css <- system.file("styles", "colorblind.css", package = "WeinR")
-  if (!nzchar(pkg_css)) {
-    stop("Could not find 'styles/colorblind.css' in the installed WeinR package.", call. = FALSE)
+  #pkg_css <- system.file("styles", "colorblind.css", package = "WeinR")
+  #if (!nzchar(pkg_css)) {
+  #  stop("Could not find 'styles/colorblind.css' in the installed WeinR package.", call. = FALSE)
+  #}
+  ###########
+  ###########
+  ###########
+  ###########
+  # ---- DEV MODE: load CSS directly from inst/ ----
+  # NOTE: This is for development only. Replace with system.file()
+  # before release / Bioconductor submission.
+  pkg_css <- file.path("inst", "styles", "colorblind.css")
+  
+  if (!file.exists(pkg_css)) {
+    stop(
+      "Could not find colorblind.css at ", normalizePath(pkg_css, mustWork = FALSE),
+      "\n(DEV MODE expects inst/styles/colorblind.css)",
+      call. = FALSE
+    )
   }
+  
+  
   
   # Copy CSS next to the report for portability (avoid absolute paths in YAML)
   css_out <- file.path(out_dir, "colorblind.css")
