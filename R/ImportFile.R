@@ -12,10 +12,12 @@
 #'   function warns and returns \code{NULL}.
 #'
 #' @return A \code{Biostrings::QualityScaledDNAStringSet} on success, or \code{NULL}
-#'   if the number of reads is less than \code{MinNumReads}.
+#'   if the file is skipped because the number of reads is less than
+#'   \code{MinNumReads}.
 #'
 #' @details
-#' File type is inferred by \code{CheckFile()}. For FASTQ/FASTQ.GZ inputs, the file
+#' File type is inferred by \code{CheckFile()}, which errors on invalid paths
+#' or unsupported file extensions. For FASTQ/FASTQ.GZ inputs, the file
 #' is first validated with \code{FastqCheck(filePath, n_records = 100L)}; failures
 #' are rethrown as \dQuote{FASTQ check failed: ...}. Reading failures from
 #' \code{Biostrings::readQualityScaledDNAStringSet()} are rethrown as
@@ -115,5 +117,5 @@ ImportFile <- function(filePath,
     return(NULL)
   }
   
-  Output
+  return(Output)
 }

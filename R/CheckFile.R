@@ -1,7 +1,7 @@
 #' Validate an input file path and infer file type
 #'
 #' Internal helper that validates a single input file path, issues a warning
-#' for extremely large files, and infers the input type from the filename
+#' for large files, and infers the input type from the filename
 #' extension.
 #'
 #' Supported extensions are BAM (\code{.bam}), FASTQ (\code{.fastq}, \code{.fq}),

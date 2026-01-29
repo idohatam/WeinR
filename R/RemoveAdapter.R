@@ -3,8 +3,8 @@
 #' Internal helper that searches for an adapter sequence within reads from a
 #' single-file QC object, trims adapter occurrences near read ends, and optionally
 #' splits reads with internal adapter hits into fragments (chimeric read handling).
-#' Filtered/trimmed reads are written to disk and a summary is stored in
-#' \code{qc_obj@metadata}.
+#' Trimmed reads are written to disk and a summary is stored in
+#' \code{qc_obj@metadata[[basename(original_file)]]}.
 #'
 #' @param qc_obj A \code{LongReadQC} (or compatible) object containing exactly one
 #'   file in \code{@files}. This function operates on a single file at a time.
@@ -14,25 +14,40 @@
 #' @param MinOverlapEnd Integer(1). Maximum distance from either end (5' or 3')
 #'   within which an adapter hit is treated as an end adapter and trimmed.
 #' @param MinInternalDistance Integer(1). Minimum distance from either end required
-#'   for an adapter hit to be considered "internal" (used for chimera splitting).
+#'   for an adapter hit to be considered internal (used for chimera splitting).
 #' @param MinFragmentLength Integer(1). Minimum fragment length to keep after
-#'   trimming/splitting.
+#'   trimming/splitting. Fragments shorter than this are discarded.
+#' @param FilePath Character(1) or \code{NULL}. Optional file path to trim. If
+#'   \code{NULL}, uses the file in \code{qc_obj@files[[1]]}. This supports trimming
+#'   of intermediate files while still recording results under the original input file.
 #' @param OutDir Character(1). Output directory. Created if it does not exist.
 #' @param OutFileType Character vector specifying output format(s). Supported values
 #'   are \code{"fastq"}, \code{"fasta"}, and \code{"bam"} (as implemented by
 #'   \code{WriteReadOutputs()}). Multiple formats may be requested.
 #' @param OutFile Character(1) or \code{NULL}. Optional output filename stem used
-#'   for naming outputs.
+#'   for naming outputs. If \code{NULL}, naming is based on the original input file.
 #' @param verbose Logical(1). If \code{TRUE}, prints progress messages.
+#' @param WriteIntermediate Logical(1). If \code{TRUE}, writes an intermediate FASTQ
+#'   file and stores the path in \code{attr(qc_obj, "._tmp_fastq")} for chaining
+#'   steps in downstream workflows.
 #'
-#' @return The updated \code{qc_obj} with \code{$adapter_summary} stored in
-#'   \code{qc_obj@metadata[[file]]}.
+#' @return The updated \code{qc_obj}. An adapter trimming summary is stored in
+#'   \code{qc_obj@metadata[[basename(original_file)]]$adapter_summary}.
 #'
 #' @details
-#' Adapter detection uses \code{Biostrings::vmatchPattern()} with a mismatch
-#' threshold. Hits within \code{MinOverlapEnd} of read ends are trimmed. Reads with
-#' multiple internal adapter hits can be split into fragments, and fragments shorter
-#' than \code{MinFragmentLength} are discarded.
+#' Adapter detection uses \code{Biostrings::vmatchPattern()} with
+#' \code{max.mismatch = MaxMismatchEnd}. Adapter hits within \code{MinOverlapEnd}
+#' of the 5' or 3' ends are treated as end adapters and trimmed.
+#'
+#' Reads with two or more adapter hits may contain internal adapters. Internal hits
+#' that are at least \code{MinInternalDistance} from both ends are used to split a
+#' read into fragments (chimera handling). Fragments shorter than
+#' \code{MinFragmentLength} are discarded. If chimeric fragments are produced, the
+#' corresponding original reads are removed from the end-trimmed set to avoid
+#' duplicate representation.
+#'
+#' The summary is recorded under the original input file (the single file stored in
+#' \code{qc_obj@files[[1]]}), keyed by its basename.
 #'
 #' @examples
 #' \dontrun{
@@ -45,7 +60,8 @@
 #'   MinFragmentLength = 200,
 #'   OutDir = tempdir(),
 #'   OutFileType = "fastq",
-#'   verbose = TRUE
+#'   verbose = TRUE,
+#'   WriteIntermediate = TRUE
 #' )
 #' }
 #'
@@ -56,16 +72,22 @@ RemoveAdapter <- function(qc_obj,
                           MinOverlapEnd = 20,
                           MinInternalDistance = 100,
                           MinFragmentLength = 200,
+                          FilePath = NULL,
                           OutDir = ".",
                           OutFileType = c("fastq"),
                           OutFile = NULL,
-                          verbose = TRUE) {
+                          verbose = TRUE,
+                          WriteIntermediate = FALSE) {
   
   ## Input checks
   if (length(qc_obj@files) != 1)
     stop("RemoveAdapter() expects a LongReadQC object with exactly one file.")
   
-  fpath <- qc_obj@files[[1]]
+  attr(qc_obj, "._tmp_fastq") <- NULL
+  
+  # Choose which file to trim
+  fpath <- if (!is.null(FilePath)) FilePath else qc_obj@files[[1]]
+  OriginalFPath <- qc_obj@files[[1]]
   fname <- basename(fpath)
   
   if (!dir.exists(OutDir)) dir.create(OutDir, recursive = TRUE)
@@ -204,7 +226,7 @@ RemoveAdapter <- function(qc_obj,
   
   ## Write output
   base_name <- if (!is.null(OutFile))
-    RemoveExt(OutFile) else RemoveExt(fpath)
+    RemoveExt(OutFile) else RemoveExt(OriginalFPath)
   
   out_paths <- WriteReadOutputs(
     reads = all_trimmed,
@@ -215,7 +237,7 @@ RemoveAdapter <- function(qc_obj,
   
   
   ## Update metadata
-  qc_obj@metadata[[fpath]]$adapter_summary <- list(
+  qc_obj@metadata[[basename(OriginalFPath)]]$adapter_summary <- list(
     reads_before = n_reads,
     reads_after  = length(all_trimmed),
     output_paths = out_paths
@@ -226,6 +248,30 @@ RemoveAdapter <- function(qc_obj,
             ": kept ", length(all_trimmed), " reads (",
             length(chimeric_frags), " chimeric fragments).")
   }
+  
+  tmp_fastq <- NULL
+  
+  if (isTRUE(WriteIntermediate) && length(all_trimmed) > 0L) {
+    
+    stem <- RemoveExt(basename(OriginalFPath))
+    tmp_base <- paste0(stem, "_adapter_tmp_", Sys.getpid(), "_", sample.int(1e9, 1))
+    
+    tmp_dir <- file.path(tempdir(), "longR_intermediate")
+    dir.create(tmp_dir, recursive = TRUE, showWarnings = FALSE)
+    
+    tmp_paths <- WriteReadOutputs(
+      reads = all_trimmed,
+      base_name = tmp_base,
+      OutDir = tmp_dir,
+      OutFileType = "fastq",
+      Verbose = FALSE
+    )
+    
+    tmp_fastq <- tmp_paths[[1]]
+  }
+  
+  
+  attr(qc_obj, "._tmp_fastq") <- tmp_fastq
   
   base::return(qc_obj)
 }
