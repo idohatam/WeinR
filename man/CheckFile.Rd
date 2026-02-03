@@ -15,7 +15,7 @@ A length-1 character string: one of \code{"bam"},
 }
 \description{
 Internal helper that validates a single input file path, issues a warning
-for extremely large files, and infers the input type from the filename
+for large files, and infers the input type from the filename
 extension.
 }
 \details{

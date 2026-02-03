@@ -15,34 +15,43 @@ TrimLong(
 )
 }
 \arguments{
-\item{qc_obj}{A QC S4 object containing \code{@files}.}
+\item{qc_obj}{A QC S4 object containing \code{@files}. This function expects
+exactly one file in \code{qc_obj@files} (the "original" file key for metadata).}
 
 \item{Start}{Integer(1) or \code{NULL}. Number of bases to remove from the start
-of each read. If \code{NULL}, no start trimming is applied.}
+(5') of each read. If \code{NULL}, no start trimming is applied.}
 
-\item{End}{Integer(1) or \code{NULL}. Number of bases to remove from the end of
-each read. If \code{NULL}, no end trimming is applied.}
+\item{End}{Integer(1) or \code{NULL}. Number of bases to remove from the end
+(3') of each read. If \code{NULL}, no end trimming is applied.}
 
 \item{FilePath}{Character(1) or \code{NULL}. Optional file path to trim. If
-\code{NULL}, uses the first file in \code{qc_obj@files}.}
+\code{NULL}, uses the first file in \code{qc_obj@files}. This is used to allow
+trimming of intermediate files while still recording results under the original
+input file.}
 
 \item{OutDir}{Character(1). Output directory. Created if it does not exist.}
 
 \item{OutFile}{Character(1) or \code{NULL}. Optional output filename stem. If
-provided, \code{RemoveExt(OutFile)} is used as the base name.}
+provided, \code{RemoveExt(OutFile)} is used as the base name; otherwise the
+original input file stem is used.}
 
 \item{OutFileType}{Character vector specifying output format(s). Supported values
 are \code{"fastq"}, \code{"fasta"}, and \code{"bam"} (as implemented by
 \code{WriteReadOutputs()}). Multiple formats may be requested.}
 }
 \value{
-The updated \code{qc_obj} with \code{$trim_summary} stored in
-\code{qc_obj@metadata[[original_file]]}.
+The updated \code{qc_obj}. A trim summary is stored in
+\code{qc_obj@metadata[[basename(original_file)]]$trim_summary}.
 }
 \description{
 Internal helper that trims reads for a single input file using \code{Start} and
 \code{End} offsets and writes trimmed reads to disk. A trim summary is stored in
-\code{qc_obj@metadata}.
+\code{qc_obj@metadata[[basename(original_file)]]}.
+}
+\details{
+Trimming is performed using \code{IRanges::narrow()}. Reads that would become
+invalid (end < start) are dropped. If no reads can be trimmed under the provided
+\code{Start}/\code{End} values, the input \code{qc_obj} is returned unchanged.
 }
 \examples{
 \dontrun{

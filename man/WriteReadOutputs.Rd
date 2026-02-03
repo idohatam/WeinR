@@ -4,7 +4,13 @@
 \alias{WriteReadOutputs}
 \title{Write reads to one or more output formats (internal)}
 \usage{
-WriteReadOutputs(reads, base_name, OutDir = ".", OutFileType = c("fastq"))
+WriteReadOutputs(
+  reads,
+  base_name,
+  OutDir = ".",
+  OutFileType = c("fastq"),
+  Verbose = TRUE
+)
 }
 \arguments{
 \item{reads}{A \code{Biostrings::QualityScaledDNAStringSet} (or compatible
@@ -17,6 +23,8 @@ WriteReadOutputs(reads, base_name, OutDir = ".", OutFileType = c("fastq"))
 \item{OutFileType}{Character vector specifying output format(s). Supported values
 are \code{"fastq"}, \code{"fasta"}, and \code{"bam"}. Multiple formats may be
 requested.}
+
+\item{Verbose}{Logical(1). If \code{TRUE}, print a message for each output file written.}
 }
 \value{
 A character vector of output file paths (one per requested format).
@@ -32,17 +40,18 @@ BAM output is created by writing a temporary SAM file and converting it via
 }
 \examples{
 \dontrun{
-# Create a tiny read set and write FASTA + FASTQ to a temp directory
 reads <- Biostrings::QualityScaledDNAStringSet(
   Biostrings::DNAStringSet(c("ACGT", "AAAA")),
   Biostrings::BStringSet(c("IIII", "####"))
 )
 names(reads) <- c("r1", "r2")
-out <- WeinR:::WriteReadOutputs(
+
+out <- WriteReadOutputs(
   reads,
   base_name   = "toy",
   OutDir      = tempdir(),
-  OutFileType = c("fasta", "fastq")
+  OutFileType = c("fasta", "fastq"),
+  Verbose     = TRUE
 )
 out
 }

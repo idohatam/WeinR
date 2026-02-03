@@ -10,26 +10,40 @@ ImportFile(filePath, MinNumReads = 1L)
 \item{filePath}{Character scalar. Path to a single input file.}
 
 \item{MinNumReads}{Integer(1). Minimum number of reads required to keep the file.
-If fewer reads are present, the function warns and returns \code{NULL}.}
+Must be a single positive integer (>= 1). If fewer reads are present, the
+function warns and returns \code{NULL}.}
 }
 \value{
-A \code{Biostrings::QualityScaledDNAStringSet} on success, or \code{NULL} if the
-number of reads is less than \code{MinNumReads}.
+A \code{Biostrings::QualityScaledDNAStringSet} on success, or \code{NULL}
+if the file is skipped because the number of reads is less than
+\code{MinNumReads}.
 }
 \description{
 Internal helper that reads one input file (FASTQ/FASTQ.GZ/BAM) and returns a
-\code{Biostrings::QualityScaledDNAStringSet}. BAM files are read with
-\code{Rsamtools::scanBam()} and converted to a quality-scaled set.
+\code{Biostrings::QualityScaledDNAStringSet}. FASTQ inputs are pre-checked with
+\code{FastqCheck()} before reading. BAM inputs are opened with
+\code{Rsamtools::BamFile()} and read via \code{Rsamtools::scanBam()} then
+converted to a quality-scaled set.
 }
 \details{
-File type is inferred by \code{CheckFile()}. Reading errors are rethrown with a more
-informative message (e.g., malformed FASTQ or invalid BAM).
+File type is inferred by \code{CheckFile()}, which errors on invalid paths
+or unsupported file extensions. For FASTQ/FASTQ.GZ inputs, the file
+is first validated with \code{FastqCheck(filePath, n_records = 100L)}; failures
+are rethrown as \dQuote{FASTQ check failed: ...}. Reading failures from
+\code{Biostrings::readQualityScaledDNAStringSet()} are rethrown as
+\dQuote{FASTQ read failed (corrupted/malformed): ...}.
+
+For BAM inputs, the file is opened and read with \code{Rsamtools}. Errors while
+opening or scanning are rethrown as \dQuote{BAM open failed ...} or
+\dQuote{BAM read failed ...}. The function also validates required BAM fields
+(\code{seq} and \code{qual}) and checks that their lengths match. If available
+and aligned in length, BAM \code{qname} values are used as read names.
 
 This function is intended for internal use and is not part of the public API.
 }
 \examples{
 \dontrun{
-# FASTQ example: create a tiny, valid FASTQ file
+# FASTQ example: create a tiny, valid FASTQ file (1 read)
 fq <- tempfile(fileext = ".fastq")
 writeLines(c("@r1", "ACGT", "+", "IIII"), fq)
 x <- WeinR:::ImportFile(fq)
@@ -38,6 +52,9 @@ length(x)
 # MinNumReads example: warn + return NULL if threshold not met
 y <- WeinR:::ImportFile(fq, MinNumReads = 2L)
 is.null(y)
+
+# MinNumReads validation example: errors on invalid values
+WeinR:::ImportFile(fq, MinNumReads = 0)
 }
 
 }

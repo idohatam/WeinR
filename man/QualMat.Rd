@@ -2,44 +2,26 @@
 % Please edit documentation in R/QualMat.R
 \name{QualMat}
 \alias{QualMat}
-\title{calculates and fills metrics of LongReadQc object
-metrics:
-length
-distribution
-read lengths
-yield
-GC content
-per read
-per position          TO DO
-per file
-N content
-per position          TO DO? do we even care
-N50
-N90
-Q score
-per read average
-per position average <- takes a lot of memory, think of different approach
-per file average
-
-ADD ERROR HANDLING
-USE SYSTIME TO CHECK HOW LONG IT TAKES
-FIGURE OUT WHAT IS TAKING UP SO MUCH MEMORY IN THE OBJECT
-save only N count if >0}
+\title{Compute and store per-file quality-control metrics}
 \usage{
 QualMat(qc_obj, stringset, filename)
 }
-\description{
-use profvis on function to figure out data use stuff
-use microbenchmark to figure out how different approaches compare
-data table instead of dataframe?
-try working with asciis instead of numbres?
-try preallocating memory for memory
-way to work not with metrics but only
-at x position -> take all reads with length greater than x -> calculate quartiles -> next pos
-add adapter content as metric
-Update workflow
--> try to use workflow function
--> generates what needs to be generated
--> for next week having working workflow
-run profvis on R terminal
+\arguments{
+\item{qc_obj}{An S4 QC object with at least \verb{@metrics} and \verb{@summary_metrics}
+slots. This function appends metrics for \code{filename} into these slots.}
+
+\item{stringset}{A \code{Biostrings} string set containing the sequences (and
+optionally qualities, depending on object type).}
+
+\item{filename}{Character scalar naming the file being summarized (used as a
+key in \code{qc_obj@metrics} and in the summary table).}
 }
+\value{
+The updated \code{qc_obj}.
+}
+\description{
+Internal helper that computes read-level and file-level summary metrics from a
+\code{DNAStringSet}/\code{QualityScaledDNAStringSet}-like input and stores them into a
+QC object.
+}
+\keyword{internal}

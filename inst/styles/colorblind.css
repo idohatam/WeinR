@@ -80,11 +80,6 @@ h1.title {
    TOC LAYOUT (fixed-width sidebar + fluid content)
    ========================================================== */
 
-/* IMPORTANT: remove/avoid any old rules like:
-   .row-fluid .span3 { width: 2% !important; }
-   .row-fluid .span9 { width: 100% !important; }
-*/
-
 /* Turn the main Rmd layout into a 2-column flex row */
 .main-container > .row-fluid,
 .main-container > .row {

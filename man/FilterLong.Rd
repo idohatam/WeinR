@@ -10,38 +10,51 @@ FilterLong(
   MinLength = 100,
   MaxNumberNs = 2,
   OutFileType = c("fastq"),
-  OutDir = "."
+  OutDir = ".",
+  WriteIntermediate = FALSE
 )
 }
 \arguments{
-\item{qc_obj}{A QC S4 object containing \code{@files} and \code{@metrics}.}
+\item{qc_obj}{A QC S4 object containing \code{@files} and \code{@metrics}.
+This function expects exactly one file in \code{qc_obj@files}.}
 
-\item{MinAvgQS}{Numeric(1). Minimum mean per-read Q-score to keep a read.}
+\item{MinAvgQS}{Numeric(1). Minimum mean per-read Q-score required to keep a read.}
 
-\item{MinLength}{Integer(1). Minimum read length to keep a read.}
+\item{MinLength}{Integer(1). Minimum read length required to keep a read.}
 
-\item{MaxNumberNs}{Integer(1). Maximum allowed number of N bases per read.}
+\item{MaxNumberNs}{Integer(1). Maximum allowed number of \code{N} bases per read.}
 
 \item{OutFileType}{Character vector specifying output format(s).
 Supported values are \code{"fastq"}, \code{"bam"}, and \code{"fasta"}.
 Multiple formats may be requested.}
 
-\item{OutDir}{Character(1). Output directory. Created if it does not exist.}
+\item{OutDir}{Character(1). Output directory for filtered reads.
+Created if it does not exist.}
+
+\item{WriteIntermediate}{Logical(1). If \code{TRUE}, an intermediate FASTQ file
+is written and its path is stored in
+\code{attr(qc_obj, "._tmp_fastq")} for chaining steps in downstream workflows.}
 }
 \value{
-The updated \code{qc_obj}. If no reads pass filters, the input
-\code{qc_obj} is returned unchanged.
+The updated \code{qc_obj}. If no reads pass the filters, the input
+object is returned unchanged and no output files are written.
 }
 \description{
 Internal helper that filters reads for a single file represented inside a QC
-object using per-read metrics (mean Q-score, read length, and N-count). Reads
-that pass are written to disk, and a filter summary is stored in
-\code{qc_obj@metadata[[file]]}.
+object using per-read metrics (mean Q-score, read length, and N-count).
+Reads that pass the filters are written to disk, and a filter summary is stored
+in \code{qc_obj@metadata[[basename(file)]]}.
 }
 \details{
-Output file types are validated using \code{match.arg()}. Files are written
-using \code{WriteReadOutputs()}, and a summary of filtering results is stored
-in \code{qc_obj@metadata}.
+Per-read QC metrics are retrieved from \code{qc_obj@metrics} using the
+basename of the input file as the key. Filtered reads are written using
+\code{WriteReadOutputs()}, and a summary of filtering results is stored in
+\code{qc_obj@metadata[[basename(file)]]}.
+
+When \code{WriteIntermediate = TRUE}, a temporary FASTQ file containing the
+filtered reads is written to a session-specific directory under
+\code{tempdir()}, and its path is attached to the QC object for use by
+subsequent processing steps.
 }
 \examples{
 \dontrun{
@@ -51,7 +64,8 @@ qc_obj2 <- FilterLong(
   MinLength = 100,
   MaxNumberNs = 2,
   OutFileType = c("fastq", "fasta"),
-  OutDir = tempdir()
+  OutDir = tempdir(),
+  WriteIntermediate = TRUE
 )
 }
 
