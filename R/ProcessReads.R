@@ -9,7 +9,6 @@
 #' @param qc_obj A `LongReadQC` object containing one or more input files in `qc_obj@files`,
 #'   with corresponding metrics already computed in `qc_obj@metrics` and
 #'   `qc_obj@summary_metrics`.
-#' @param OutDir Character(1). Output directory for processed files. Created if it does not exist.
 #' @param filter Logical(1). If `TRUE`, run `FilterLong()` prior to other steps.
 #' @param MinAvgQS Numeric(1). Minimum mean per-read quality score to keep a read (passed to `FilterLong()`).
 #' @param MinLength Integer(1). Minimum read length to keep a read (passed to `FilterLong()`).
@@ -59,7 +58,6 @@
 #'
 #' # 1) Filter only + report
 #' qc2 <- ProcessReads(qc_obj,
-#'   OutDir = "outputs",
 #'   filter = TRUE,
 #'   MinAvgQS = 20,
 #'   MinLength = 100,
@@ -70,7 +68,6 @@
 #'
 #' # 2) Filter + adapter trimming + end trimming (no report)
 #' qc3 <- ProcessReads(qc_obj,
-#'   OutDir = "outputs",
 #'   filter = TRUE,
 #'   AdapterSeq = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA",
 #'   Start = 10,
@@ -82,7 +79,6 @@
 #'
 #' @export
 ProcessReads <- function(qc_obj,
-                         OutDir = ".",
                          filter = FALSE,
                          MinAvgQS = 20,
                          MinLength = 100,
@@ -103,8 +99,12 @@ ProcessReads <- function(qc_obj,
   
   message("Starting processing workflow for ", length(qc_obj@files), " file(s)...")
   
-  OutDir <- normalizePath(OutDir, winslash = "/", mustWork = FALSE)
-  if (!dir.exists(OutDir)) dir.create(OutDir, recursive = TRUE)
+  base_dir <- file.path(getwd(), "WeinR_Outputs")
+  dir.create(base_dir, recursive = TRUE, showWarnings = FALSE)
+  
+  filtered_dir <- file.path(base_dir, "Processed_Files")
+  filtered_dir <- normalizePath(filtered_dir, winslash = "/", mustWork = FALSE)
+  dir.create(filtered_dir, recursive = TRUE, showWarnings = FALSE)
   
   for (fpath in qc_obj@files) {
     
@@ -145,7 +145,7 @@ ProcessReads <- function(qc_obj,
           MinLength = MinLength,
           MaxNumberNs = MaxNumberNs,
           OutFileType = OutFileType,
-          OutDir = OutDir,
+          OutDir = filtered_dir,
           WriteIntermediate = TRUE
         )
         
@@ -173,7 +173,7 @@ ProcessReads <- function(qc_obj,
           MinInternalDistance = MinInternalDistance,
           MinFragmentLength = MinFragmentLength,
           FilePath = current_input,
-          OutDir = OutDir,
+          OutDir = filtered_dir,
           OutFileType = OutFileType,
           OutFile = NULL,
           verbose = verbose,
@@ -198,7 +198,7 @@ ProcessReads <- function(qc_obj,
           Start = Start,
           End = End,
           FilePath = current_input,
-          OutDir = OutDir,
+          OutDir = filtered_dir,
           OutFile = NULL,
           OutFileType = OutFileType
         )
@@ -222,9 +222,8 @@ ProcessReads <- function(qc_obj,
   
   message("\nProcessing complete for all files.")
   
-  reports_dir <- file.path(getwd(), "reports")
-  dir.create(reports_dir, showWarnings = FALSE, recursive = TRUE)
-  
+  reports_dir <- file.path(base_dir, "Reports")
+  dir.create(reports_dir, recursive = TRUE, showWarnings = FALSE)
   report_path <- file.path(reports_dir, outpath)
   
   rmd_path  <- paste0(report_path, ".Rmd")
@@ -245,7 +244,8 @@ ProcessReads <- function(qc_obj,
       path        = report_path,
       title       = title,
       overwrite   = TRUE,
-      render_html = TRUE
+      render_html = TRUE,
+      metadata = TRUE
     )
   }
   

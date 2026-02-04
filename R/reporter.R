@@ -23,6 +23,7 @@
 #'   rendered HTML in a browser.
 #' @param mfa A `LongReadQC` object (required). Used by the report as
 #'   `params$mfa`.
+#' @param metadata Logical. If `TRUE`, include a metadata table summarizing
 #'
 #' @return If `render_html=TRUE`, an (invisible) list with elements `rmd` and
 #'   `html` giving normalized paths to the generated files. If `render_html=FALSE`,
@@ -44,7 +45,8 @@ CreateReport <- function(
     overwrite     = FALSE,
     render_html   = TRUE,
     open_browser  = interactive(),
-    mfa           = NULL
+    mfa           = NULL,
+    metadata      = FALSE
 ) {
   stopifnot(!is.null(mfa))
   code_folding <- match.arg(code_folding)
@@ -83,24 +85,8 @@ CreateReport <- function(
   # ---- DEV MODE: load CSS directly from inst/ ----
   # NOTE: This is for development only. Replace with system.file()
   # before release / Bioconductor submission.
-  pkg_css <- file.path("inst", "styles", "colorblind.css")
-  
-  if (!file.exists(pkg_css)) {
-    stop(
-      "Could not find colorblind.css at ", normalizePath(pkg_css, mustWork = FALSE),
-      "\n(DEV MODE expects inst/styles/colorblind.css)",
-      call. = FALSE
-    )
-  }
-  
-  
-  
-  # Copy CSS next to the report for portability (avoid absolute paths in YAML)
-  css_out <- file.path(out_dir, "colorblind.css")
-  ok <- file.copy(pkg_css, css_out, overwrite = TRUE)
-  if (!isTRUE(ok)) {
-    stop("Failed to copy stylesheet to: ", css_out, call. = FALSE)
-  }
+  pkg_css <- normalizePath(file.path("inst", "styles", "colorblind.css"),
+                           winslash = "/", mustWork = TRUE)
   
   yaml <- c(
     "---",
@@ -114,7 +100,8 @@ CreateReport <- function(
     sprintf("    code_folding: %s", code_folding),
     "    df_print: paged",
     "    self_contained: true",
-    '    css: "colorblind.css"',
+#    '    css: "colorblind.css"',
+    sprintf('    css: "%s"', pkg_css),
     "params:",
     "  mfa: !r NULL",
     "---",
@@ -181,6 +168,68 @@ CreateReport <- function(
     "</div>",
     "",
     "<hr class='section-sep'/>",
+    ""
+  )
+  if (metadata == TRUE) {
+    body <- c(
+      body,
+      "<div class='section-card'>",
+      "## Metadata",
+      "```{r}",
+      "md <- qc@metadata",
+      "",
+      "if (length(md)) {",
+      "  files <- names(md)",
+      "",
+      "  reads_before <- vapply(files, function(f) {",
+      "    fs <- md[[f]][['filter_summary']]",
+      "    if (is.null(fs) || is.null(fs[['reads_before']])) return(NA_integer_)",
+      "    as.integer(fs[['reads_before']])",
+      "  }, integer(1))",
+      "",
+      "  reads_after <- vapply(files, function(f) {",
+      "    fs <- md[[f]][['filter_summary']]",
+      "    if (is.null(fs) || is.null(fs[['reads_after']])) return(NA_integer_)",
+      "    as.integer(fs[['reads_after']])",
+      "  }, integer(1))",
+      "",
+      "  filtered_fname <- vapply(files, function(f) {",
+      "    fs <- md[[f]][['filter_summary']]",
+      "    op <- if (!is.null(fs)) fs[['output_paths']] else NULL",
+      "    if (is.null(op) || length(op) == 0 || is.na(op[1])) return(NA_character_)",
+      "    basename(op[1])  # substring after last '/'",
+      "  }, character(1))",
+      "",
+      "  meta_tbl <- data.frame(",
+      "    Filename = files,",
+      "    `Pre-filter Reads` = reads_before,",
+      "    `Post-filter Reads` = reads_after,",
+      "    `Filtered Filename` = filtered_fname,",
+      "    check.names = FALSE,",
+      "    stringsAsFactors = FALSE",
+      "  )",
+      "",
+      "  DT::datatable(",
+      "    meta_tbl,",
+      "    options = list(scrollX = TRUE, pageLength = 15, autoWidth = TRUE),",
+      "    rownames = FALSE,",
+      "    caption = 'Filtering metadata',",
+      "    class = 'stripe hover'",
+      "  ) |>",
+      "  DT::formatRound(",
+      "    columns = c('Pre-filter Reads', 'Post-filter Reads'),",
+      "    digits = 0,",
+      "    mark = ','",
+      "  )",
+      "} else {",
+      "  cat('No metadata available.')",
+      "}",
+      "```",
+      "</div>"
+    )
+  }
+  body <- c(
+    body,
     "",
     "<div class='section-card'>",
     "## **Plots**",

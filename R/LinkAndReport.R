@@ -1,16 +1,44 @@
 #' Run QC on input files and (optionally) generate a report
 #'
+#' Runs quality control on one or more long-read FASTQ files, producing summary
+#' metrics and plots stored in a `LongReadQC` object. Optionally generates an
+#' HTML report and saves the QC object as an `.rds` file.
+#'
+#' Outputs are written to:
+#' \itemize{
+#'   \item \code{WeinR_Outputs/Reports/} for \code{.Rmd} and \code{.html}
+#'   \item \code{WeinR_Outputs/qc.rds} for the saved QC object
+#' }
+#'
 #' @param files Character vector of input file paths.
-#' @param outpath Character. Base filename (without extension) for the report.
-#' @param title Character. Report title. Defaults to `outpath`.
-#' @param render_report Logical. If `TRUE`, generate the report.
-#' @param force Logical. If `TRUE`, overwrite existing report files.
+#' @param report_name Character. Base filename (without extension) for the report.
+#' @param render_report Logical. If \code{TRUE}, generate the HTML report.
+#' @param force Logical. If \code{TRUE}, overwrite existing report files.
+#'
+#' @return A `LongReadQC` object containing metrics, plots, and summary tables for
+#'   each input file (also saved to \code{WeinR_Outputs/qc.rds}).
+#'
+#' @examples
+#' \dontrun{
+#' fastq_files <- c(
+#'   "data/Nakazawaea_holstii.fastq",
+#'   "data/Nakazawaea_populi.fastq"
+#' )
+#'
+#' qc_obj <- LinkAndReport(
+#'   files = fastq_files,
+#'   report_name = "Fully_linked_test",
+#'   render_report = TRUE,
+#'   force = TRUE
+#' )
+#'
+#' qc_obj2 <- readRDS(file.path(getwd(), "WeinR_Outputs", "qc.rds"))
+#' }
 #'
 #' @export
 LinkAndReport <- function(
     files,
-    outpath,
-    title = outpath,
+    report_name,
     render_report = TRUE,
     force = FALSE
 ) {
@@ -24,11 +52,14 @@ LinkAndReport <- function(
     qc_obj <- QualPlot(qc_obj, filename = fname)
   }
   
-  reports_dir <- file.path(getwd(), "reports")
-  dir.create(reports_dir, showWarnings = FALSE, recursive = TRUE)
+  base_dir <- file.path(getwd(), "WeinR_Outputs")
+  dir.create(base_dir, recursive = TRUE, showWarnings = FALSE)
   
-  report_path <- file.path(reports_dir, outpath)
-
+  reports_dir <- file.path(base_dir, "Reports")
+  dir.create(reports_dir, recursive = TRUE, showWarnings = FALSE)
+  
+  report_path <- file.path(reports_dir, report_name)
+  
   rmd_path  <- paste0(report_path, ".Rmd")
   html_path <- paste0(report_path, ".html")
   
@@ -45,11 +76,14 @@ LinkAndReport <- function(
     CreateReport(
       mfa         = qc_obj,
       path        = report_path,
-      title       = title,
-      overwrite   = TRUE, 
+      title       = report_name,
+      overwrite   = TRUE,
       render_html = TRUE
     )
   }
+  
+  rds_path <- file.path(base_dir, "qc.rds")
+  saveRDS(qc_obj, rds_path)
   
   qc_obj
 }
