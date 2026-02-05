@@ -1,1 +1,3 @@
-# longR
+# WeinR 
+
+tester for readme 
