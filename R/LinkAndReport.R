@@ -45,15 +45,75 @@ LinkAndReport <- function(
   
   qc_obj <- .init_qc_object(files)
   
+  WeinRdir <- file.path(getwd(), "WeinR_Outputs")
+  dir.create(WeinRdir, recursive = TRUE, showWarnings = FALSE)
+  
+  timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
+  base_dir <- file.path(WeinRdir, paste0("run_", timestamp))
+  
+  dir.create(base_dir, recursive = TRUE, showWarnings = FALSE)
+  
+  metrics_dir <- file.path(base_dir, "metrics")
+  dir.create(metrics_dir, recursive = TRUE, showWarnings = FALSE)
+  
   for (file in qc_obj@files) {
     qsds  <- ImportFile(file)
     fname <- basename(file)
     qc_obj <- QualMat(qc_obj, qsds, fname)
-    qc_obj <- QualPlot(qc_obj, filename = fname)
+    #qc_obj <- QualPlot(qc_obj, filename = fname)
+    file_metrics_dir <- file.path(metrics_dir, fname)
+    
+    dir.create(file_metrics_dir, recursive = TRUE, showWarnings = FALSE)
+    
+    metrics_list <- qc_obj@metrics[[fname]]
+    
+    for (metric_name in names(metrics_list)) {
+      out_csv <- file.path(file_metrics_dir, paste0(metric_name, ".csv"))
+      
+      if (!force && file.exists(out_csv)) {
+        stop(
+          "Metric CSV already exists at:\n",
+          out_csv, "\n",
+          "Use force = TRUE to overwrite.",
+          call. = FALSE
+        )
+      }
+      
+      metric <- metrics_list[[metric_name]]
+      
+      # normalize to data.frame for write.csv
+      if (is.data.frame(metric)) {
+        df <- metric
+      } else if (is.matrix(metric)) {
+        df <- as.data.frame(metric)
+      } else if (is.list(metric)) {
+        df <- data.frame(value = unlist(metric))
+      } else {
+        df <- data.frame(value = metric)
+      }
+      
+      utils::write.csv(df, file = out_csv, row.names = FALSE)
+    }
   }
   
-  base_dir <- file.path(getwd(), "WeinR_Outputs")
-  dir.create(base_dir, recursive = TRUE, showWarnings = FALSE)
+  sm <- qc_obj@summary_metrics
+  
+  if (!"file" %in% colnames(sm)) {
+    stop("qc_obj@summary_metrics must contain a 'file' column.", call. = FALSE)
+  }
+  
+  out_csv <- file.path(metrics_dir, paste0(report_name, "_summary_metrics.csv"))
+  
+  if (!force && file.exists(out_csv)) {
+    stop(
+      "Metrics CSV already exists at:\n",
+      out_csv, "\n",
+      "Use force = TRUE to overwrite.",
+      call. = FALSE
+    )
+  }
+
+  utils::write.csv(sm, file = out_csv, row.names = FALSE)
   
   reports_dir <- file.path(base_dir, "Reports")
   dir.create(reports_dir, recursive = TRUE, showWarnings = FALSE)
