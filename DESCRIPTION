@@ -24,9 +24,13 @@ Imports:
     ggrastr,
     methods,
     scales,
+    stats,
+    utils,
+    methods
 Suggests: 
     knitr,
     rmarkdown,
+    DT,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 biocViews: Sequencing, QualityControl, DataImport
