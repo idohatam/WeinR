@@ -77,30 +77,26 @@ ImportFile <- function(filePath,
   } else if (infile == "bam") {
     
     bf <- Rsamtools::BamFile(filePath)
-    on.exit(try(Rsamtools::close(bf), silent = TRUE), add = TRUE)
-    
-    tryCatch(Rsamtools::open(bf),
-             error = function(e) {
-               stop(sprintf("BAM open failed (corrupted/invalid): %s", conditionMessage(e)))
-             })
     
     bam <- tryCatch(
       Rsamtools::scanBam(bf)[[1]],
       error = function(e) {
-        stop(sprintf("BAM read failed (corrupted/invalid): %s", conditionMessage(e)))
+        stop("BAM read failed (corrupted/invalid): ", conditionMessage(e), call. = FALSE)
       }
     )
     
     if (is.null(bam$seq) || is.null(bam$qual)) {
-      stop("BAM missing required fields 'seq' and/or 'qual'.")
+      stop("BAM missing required fields 'seq' and/or 'qual'.", call. = FALSE)
     }
     if (length(bam$seq) != length(bam$qual)) {
-      stop("BAM 'seq' and 'qual' lengths do not match.")
+      stop("BAM 'seq' and 'qual' lengths do not match.", call. = FALSE)
     }
     
     out <- Biostrings::QualityScaledDNAStringSet(bam$seq, bam$qual)
     
-    if (length(out) > 0L && !is.null(bam$qname) && length(bam$qname) == length(out)) {
+    if (length(out) > 0L &&
+        !is.null(bam$qname) &&
+        length(bam$qname) == length(out)) {
       names(out) <- bam$qname
     }
     

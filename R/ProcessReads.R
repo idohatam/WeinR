@@ -1,36 +1,55 @@
 #' Process long-read files through filtering, adapter removal, end trimming, and reporting
 #'
-#' Runs a single end-to-end workflow over all files in a `LongReadQC` object. For each
-#' file, this function can (optionally) apply read filtering (`FilterLong()`), adapter
-#' trimming (`RemoveAdapter()`), and 5'/3' end trimming (`TrimLong()`), chaining steps
-#' via temporary FASTQ files. After processing, it can generate an HTML report via
+#' Runs an end-to-end processing workflow over all files in a `LongReadQC` object.
+#' For each input file, the workflow can (optionally) apply read filtering
+#' (`FilterLong()`), adapter trimming (`RemoveAdapter()`), and 5'/3' end trimming
+#' (`TrimLong()`), chaining steps via temporary FASTQ files when intermediate writing
+#' is enabled. After processing all files, an HTML report can be generated via
 #' `CreateReport()`.
 #'
 #' @param qc_obj A `LongReadQC` object containing one or more input files in `qc_obj@files`,
 #'   with corresponding metrics already computed in `qc_obj@metrics` and
 #'   `qc_obj@summary_metrics`.
 #' @param filter Logical(1). If `TRUE`, run `FilterLong()` prior to other steps.
-#' @param MinAvgQS Numeric(1). Minimum mean per-read quality score to keep a read (passed to `FilterLong()`).
+#' @param MinAvgQS Numeric(1). Minimum mean per-read quality score to keep a read
+#'   (passed to `FilterLong()`).
 #' @param MinLength Integer(1). Minimum read length to keep a read (passed to `FilterLong()`).
-#' @param MaxNumberNs Integer(1). Maximum number of `N` bases allowed per read (passed to `FilterLong()`).
-#' @param AdapterSeq Character(1) or `NULL`. If not `NULL`, run `RemoveAdapter()` using this adapter sequence.
-#' @param MaxMismatchEnd Integer(1). Maximum mismatches allowed in end-adapter matches (passed to `RemoveAdapter()`).
-#' @param MinOverlapEnd Integer(1). Minimum overlap length for end-adapter matches (passed to `RemoveAdapter()`).
-#' @param MinInternalDistance Integer(1). Minimum distance between internal adapter sites (passed to `RemoveAdapter()`).
-#' @param MinFragmentLength Integer(1). Minimum fragment length to keep after internal adapter trimming (passed to `RemoveAdapter()`).
-#' @param Start Integer(1) or `NULL`. If not `NULL`, trim this many bases from the 5' end (passed to `TrimLong()`).
-#' @param End Integer(1) or `NULL`. If not `NULL`, trim this many bases from the 3' end (passed to `TrimLong()`).
-#' @param OutFileType Character(1). Output file type for written reads (currently `"fastq"`).
-#' @param outpath Character(1). Basename for the report output (without extension). The report is written to
-#'   `file.path(getwd(), "reports", outpath)`, producing `.Rmd` and `.html`.
+#' @param MaxNumberNs Integer(1). Maximum number of `N` bases allowed per read
+#'   (passed to `FilterLong()`).
+#' @param AdapterSeq Character(1) or `NULL`. If not `NULL`, run `RemoveAdapter()` using
+#'   this adapter sequence.
+#' @param MaxMismatchEnd Integer(1). Maximum mismatches allowed in end-adapter matches
+#'   (passed to `RemoveAdapter()`).
+#' @param MinOverlapEnd Integer(1). Minimum overlap length for end-adapter matches
+#'   (passed to `RemoveAdapter()`).
+#' @param MinInternalDistance Integer(1). Minimum distance between internal adapter sites
+#'   (passed to `RemoveAdapter()`).
+#' @param MinFragmentLength Integer(1). Minimum fragment length to keep after internal
+#'   adapter trimming (passed to `RemoveAdapter()`).
+#' @param Start Integer(1) or `NULL`. If not `NULL`, trim this many bases from the 5' end
+#'   (passed to `TrimLong()`).
+#' @param End Integer(1) or `NULL`. If not `NULL`, trim this many bases from the 3' end
+#'   (passed to `TrimLong()`).
+#' @param OutFileType Character vector specifying output format(s) to write when outputs
+#'   are written (e.g., \code{"fastq"}). Supported values are \code{"fastq"},
+#'   \code{"bam"}, and \code{"fasta"} (as implemented by \code{WriteReadOutputs()}).
+#' @param outpath Character(1). Basename for the report output (without extension).
+#'   Reports are written to `file.path(getwd(), "WeinR_Outputs", "Reports", outpath)`,
+#'   producing `.Rmd` and `.html`.
 #' @param title Character(1). Title used in the generated report. Defaults to `outpath`.
 #' @param render_report Logical(1). If `TRUE`, generate an HTML report with `CreateReport()`.
-#' @param force Logical(1). If `FALSE` and an existing report `.Rmd` or `.html` already exists for `outpath`,
-#'   the function errors. If `TRUE`, allows overwrite.
+#' @param force Logical(1). If `FALSE` and an existing report `.Rmd` or `.html` already exists
+#'   for `outpath`, the function errors. If `TRUE`, allows overwrite.
 #' @param verbose Logical(1). If `TRUE`, print progress messages for each file and step.
+#' @param KeepIntermediates Logical(1). If `TRUE`, keep intermediate FASTQ files produced
+#'   between steps (when step functions are called with `WriteIntermediate = TRUE`).
+#'   If `FALSE`, intermediates are cleaned up after each file.
+#' @param final_suffix Character(1). Suffix used for the final output file produced by the
+#'   last step that runs (e.g., `"processed"`).
 #'
 #' @return The updated `LongReadQC` object with per-file metadata updated in `qc_obj@metadata`.
-#'   Processed reads are written to `OutDir` by the underlying step functions.
+#'   Processed reads are written under `file.path(getwd(), "WeinR_Outputs", "Processed_Files")`
+#'   by the underlying step functions.
 #'
 #' @details
 #' **Workflow order (per file):**
@@ -40,15 +59,13 @@
 #'   \item Optional 5'/3' trimming with `TrimLong()` if `Start` and/or `End` are provided.
 #' }
 #'
-#' Steps are chained using temporary FASTQ files stored as `attr(single_qc, "._tmp_fastq")`
-#' produced by `FilterLong()` / `RemoveAdapter()` when `WriteIntermediate = TRUE`. Temporary
-#' files are cleaned up automatically after each file.
+#' Steps may be chained using temporary FASTQ files stored as
+#' `attr(single_qc, "._tmp_fastq")` produced by `FilterLong()` / `RemoveAdapter()` when
+#' intermediate writing is enabled. Temporary files are cleaned up automatically after each
+#' file unless `KeepIntermediates = TRUE` (or the intermediate is also the final output).
 #'
-#' If filtering is enabled and no reads pass the filters, remaining steps for that file are
-#' skipped and the workflow continues to the next input file.
-#'
-#' Reports are written to a `reports/` directory under the current working directory.
-#' The report path is checked before rendering; set `force = TRUE` to overwrite.
+#' If a step results in `reads_after == 0L` (as recorded in the step summary in metadata),
+#' remaining steps for that file are skipped and the workflow continues to the next input file.
 #'
 #' @seealso [FilterLong()], [RemoveAdapter()], [TrimLong()], [CreateReport()]
 #'
@@ -95,75 +112,94 @@ ProcessReads <- function(qc_obj,
                          title = outpath,
                          render_report = TRUE,
                          force = FALSE,
-                         verbose = TRUE) {
+                         verbose = TRUE,
+                         KeepIntermediates = FALSE,
+                         final_suffix = "processed") {
   
   message("Starting processing workflow for ", length(qc_obj@files), " file(s)...")
   
   base_dir <- file.path(getwd(), "WeinR_Outputs")
   dir.create(base_dir, recursive = TRUE, showWarnings = FALSE)
   
-  filtered_dir <- file.path(base_dir, "Processed_Files")
-  filtered_dir <- normalizePath(filtered_dir, winslash = "/", mustWork = FALSE)
-  dir.create(filtered_dir, recursive = TRUE, showWarnings = FALSE)
+  processed_dir <- file.path(base_dir, "Processed_Files")
+  processed_dir <- normalizePath(processed_dir, winslash = "/", mustWork = FALSE)
+  dir.create(processed_dir, recursive = TRUE, showWarnings = FALSE)
+  
+  # where to put intermediates if not keeping them
+  tmp_dir <- file.path(tempdir(), "WeinR_intermediate")
+  dir.create(tmp_dir, recursive = TRUE, showWarnings = FALSE)
   
   for (fpath in qc_obj@files) {
     
-    key <- basename(fpath)  # <-- IMPORTANT: basename key used by QualMat/LinkAndReport
+    key <- basename(fpath)
     
     tryCatch({
       
       if (verbose) message("\n-> Processing file: ", fpath)
       
-      # Build single-file subobject
       single_qc <- qc_obj
       single_qc@files <- fpath
-      
-      # Copy metrics/summary using basename key
       single_qc@metrics[[key]] <- qc_obj@metrics[[key]]
       single_qc@summary_metrics <- qc_obj@summary_metrics[
         qc_obj@summary_metrics$file == key, , drop = FALSE
       ]
       
-      tmp1 <- NULL  # filter temp
-      tmp2 <- NULL  # adapter temp
+      tmp1 <- NULL
+      tmp2 <- NULL
       
-      # Always cleanup temps created for this file
       on.exit({
         if (!is.null(tmp1) && file.exists(tmp1)) unlink(tmp1)
         if (!is.null(tmp2) && file.exists(tmp2)) unlink(tmp2)
       }, add = TRUE)
       
-      current_input <- NULL
+      current_input <- fpath
       
-      # ---- Filter ----
+      # Decide if there WILL be a later step (used to choose output dir + suffix)
+      will_run_adapter <- !is.null(AdapterSeq)
+      will_run_trim    <- !is.null(Start) || !is.null(End)
+      
+      
+      
+      # 1. Filter
       if (isTRUE(filter)) {
         if (verbose) message("   - Filtering...")
         
+        is_final <- !(will_run_adapter || will_run_trim)
         single_qc <- FilterLong(
           qc_obj = single_qc,
           MinAvgQS = MinAvgQS,
           MinLength = MinLength,
           MaxNumberNs = MaxNumberNs,
           OutFileType = OutFileType,
-          OutDir = filtered_dir,
-          WriteIntermediate = TRUE
+          OutDir = processed_dir,
+          WriteIntermediate = TRUE,
+          KeepIntermediates = KeepIntermediates || is_final,
+          OutSuffix = if (is_final) final_suffix else step_suffix("filtered")
         )
         
-        tmp1 <- attr(single_qc, "._tmp_fastq")
-        
-        # nothing passed filters -> skip remaining steps for this file
-        if (is.null(tmp1) || !file.exists(tmp1)) {
-          message("No reads passed filters for: ", key, ". Skipping remaining steps.")
+        filt_sum <- single_qc@metadata[[key]]$filter_summary
+        if (!is.null(filt_sum) && isTRUE(filt_sum$reads_after == 0L)) {
+          if (verbose) message("   - Filtering kept 0 reads for ", key, ". Skipping remaining steps.")
           qc_obj@metadata[[key]] <- single_qc@metadata[[key]]
           return(NULL)
         }
         
-        current_input <- tmp1
+        tmp1 <- attr(single_qc, "._tmp_fastq")
+        if (!is.null(tmp1) && file.exists(tmp1)) {
+          current_input <- tmp1
+        } else if (!is_final) {
+          if (verbose) message("   - No intermediate FASTQ from filtering for ", key, ". Skipping remaining steps.")
+          qc_obj@metadata[[key]] <- single_qc@metadata[[key]]
+          return(NULL)
+        }
       }
       
-      # ---- Adapter Trim ----
+
+      # 2. Adapter Trim
       if (!is.null(AdapterSeq)) {
         if (verbose) message("   - Adapter trimming...")
+        
+        is_final <- !will_run_trim
         
         single_qc <- RemoveAdapter(
           qc_obj = single_qc,
@@ -173,23 +209,28 @@ ProcessReads <- function(qc_obj,
           MinInternalDistance = MinInternalDistance,
           MinFragmentLength = MinFragmentLength,
           FilePath = current_input,
-          OutDir = filtered_dir,
+          OutDir = processed_dir,
           OutFileType = OutFileType,
-          OutFile = NULL,
           verbose = verbose,
-          WriteIntermediate = TRUE
+          WriteIntermediate = TRUE,
+          KeepIntermediates = KeepIntermediates || is_final,
+          OutSuffix = if (is_final) final_suffix else step_suffix("adaptertrimmed")
         )
         
-        tmp2 <- attr(single_qc, "._tmp_fastq")
+        adap_sum <- single_qc@metadata[[key]]$adapter_summary
+        if (!is.null(adap_sum) && isTRUE(adap_sum$reads_after == 0L)) {
+          if (verbose) message("   - Adapter trimming kept 0 reads for ", key, ". Skipping remaining steps.")
+          qc_obj@metadata[[key]] <- single_qc@metadata[[key]]
+          return(NULL)
+        }
         
+        tmp2 <- attr(single_qc, "._tmp_fastq")
         if (!is.null(tmp2) && file.exists(tmp2)) {
           current_input <- tmp2
-        } else {
-          current_input <- NULL
         }
       }
       
-      # ---- 5'/3' end trim ----
+      # 3. Start/End Trim (final)
       if (!is.null(Start) || !is.null(End)) {
         if (verbose) message("   - Start/end trimming...")
         
@@ -198,30 +239,31 @@ ProcessReads <- function(qc_obj,
           Start = Start,
           End = End,
           FilePath = current_input,
-          OutDir = filtered_dir,
-          OutFile = NULL,
-          OutFileType = OutFileType
+          OutDir = processed_dir,                 
+          OutFileType = OutFileType,
+          OutSuffix = final_suffix                
         )
+        
+        trim_sum <- single_qc@metadata[[key]]$trim_summary
+        if (!is.null(trim_sum) && isTRUE(trim_sum$reads_after == 0L)) {
+          if (verbose) message("   - End trimming kept 0 reads for ", key, ".")
+          qc_obj@metadata[[key]] <- single_qc@metadata[[key]]
+          return(NULL)
+        }
       }
       
-      # Store metadata back in main object (basename key)
       qc_obj@metadata[[key]] <- single_qc@metadata[[key]]
-      
       NULL
       
     }, error = function(e) {
-      
-      warning(
-        "Processing failed for file: ", key, "\n",
-        "Reason: ", conditionMessage(e)
-      )
-      
+      warning("Processing failed for file: ", key, "\nReason: ", conditionMessage(e))
       NULL
     })
   }
   
   message("\nProcessing complete for all files.")
   
+  # 4. Report 
   reports_dir <- file.path(base_dir, "Reports")
   dir.create(reports_dir, recursive = TRUE, showWarnings = FALSE)
   report_path <- file.path(reports_dir, outpath)
@@ -245,10 +287,10 @@ ProcessReads <- function(qc_obj,
       title       = title,
       overwrite   = TRUE,
       render_html = TRUE,
-      metadata = TRUE
+      metadata    = TRUE
     )
   }
   
-  qc_obj
+  base::return(qc_obj)
 }
 

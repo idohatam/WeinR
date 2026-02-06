@@ -3,14 +3,15 @@
 #' Internal helper that searches for an adapter sequence within reads from a
 #' single-file QC object, trims adapter occurrences near read ends, and optionally
 #' splits reads with internal adapter hits into fragments (chimeric read handling).
-#' Trimmed reads are written to disk and a summary is stored in
-#' \code{qc_obj@metadata[[basename(original_file)]]}.
+#' A summary is stored in \code{qc_obj@metadata[[basename(original_file)]]$adapter_summary}.
+#' Optionally, an intermediate FASTQ can be written for chaining and stored in
+#' \code{attr(qc_obj, "._tmp_fastq")}.
 #'
 #' @param qc_obj A \code{LongReadQC} (or compatible) object containing exactly one
 #'   file in \code{@files}. This function operates on a single file at a time.
 #' @param adapterSeq Character(1). Adapter sequence (DNA alphabet) to search for.
 #' @param MaxMismatchEnd Integer(1). Maximum mismatches allowed when matching the
-#'   adapter sequence.
+#'   adapter sequence during end-adapter detection.
 #' @param MinOverlapEnd Integer(1). Maximum distance from either end (5' or 3')
 #'   within which an adapter hit is treated as an end adapter and trimmed.
 #' @param MinInternalDistance Integer(1). Minimum distance from either end required
@@ -24,40 +25,36 @@
 #' @param OutFileType Character vector specifying output format(s). Supported values
 #'   are \code{"fastq"}, \code{"fasta"}, and \code{"bam"} (as implemented by
 #'   \code{WriteReadOutputs()}). Multiple formats may be requested.
-#' @param OutFile Character(1) or \code{NULL}. Optional output filename stem used
-#'   for naming outputs. If \code{NULL}, naming is based on the original input file.
 #' @param verbose Logical(1). If \code{TRUE}, prints progress messages.
 #' @param WriteIntermediate Logical(1). If \code{TRUE}, writes an intermediate FASTQ
-#'   file and stores the path in \code{attr(qc_obj, "._tmp_fastq")} for chaining
-#'   steps in downstream workflows.
+#'   file and stores the path in \code{attr(qc_obj, "._tmp_fastq")} for chaining.
+#' @param KeepIntermediates Logical(1). If \code{TRUE}, writes the processed reads to
+#'   \code{OutDir} (in the formats requested by \code{OutFileType}) and records the
+#'   written paths in the summary. If \code{FALSE}, no final outputs are written.
+#' @param OutSuffix Character(1). Suffix appended to the output basename when writing
+#'   processed reads (e.g., \code{"adaptertrimmed"}).
 #'
 #' @return The updated \code{qc_obj}. An adapter trimming summary is stored in
-#'   \code{qc_obj@metadata[[basename(original_file)]]$adapter_summary}.
+#'   \code{qc_obj@metadata[[basename(original_file)]]$adapter_summary}. If
+#'   \code{WriteIntermediate = TRUE}, \code{attr(qc_obj, "._tmp_fastq")} contains the
+#'   intermediate FASTQ path (or \code{NULL}).
 #'
 #' @details
-#' Adapter detection uses \code{Biostrings::vmatchPattern()} with
-#' \code{max.mismatch = MaxMismatchEnd}. Adapter hits within \code{MinOverlapEnd}
-#' of the 5' or 3' ends are treated as end adapters and trimmed.
+#' Adapter detection uses \code{Biostrings::vmatchPattern()} (both orientations:
+#' adapter and reverse complement) with \code{max.mismatch = MaxMismatchEnd}.
+#' Adapter hits within \code{MinOverlapEnd} of the 5' or 3' ends are treated as end
+#' adapters and trimmed.
 #'
-#' Reads with two or more adapter hits may contain internal adapters. Internal hits
-#' that are at least \code{MinInternalDistance} from both ends are used to split a
-#' read into fragments (chimera handling). Fragments shorter than
-#' \code{MinFragmentLength} are discarded. If chimeric fragments are produced, the
-#' corresponding original reads are removed from the end-trimmed set to avoid
-#' duplicate representation.
-#'
-#' The summary is recorded under the original input file (the single file stored in
-#' \code{qc_obj@files[[1]]}), keyed by its basename.
+#' Reads with internal adapter hits at least \code{MinInternalDistance} from both ends
+#' can be split into fragments. Fragments shorter than \code{MinFragmentLength} are
+#' discarded. If fragments are produced, corresponding original reads are removed from
+#' the end-trimmed set to avoid duplicates.
 #'
 #' @examples
 #' \dontrun{
 #' qc_obj2 <- RemoveAdapter(
 #'   qc_obj,
 #'   adapterSeq = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA",
-#'   MaxMismatchEnd = 3,
-#'   MinOverlapEnd = 20,
-#'   MinInternalDistance = 100,
-#'   MinFragmentLength = 200,
 #'   OutDir = tempdir(),
 #'   OutFileType = "fastq",
 #'   verbose = TRUE,
@@ -75,204 +72,229 @@ RemoveAdapter <- function(qc_obj,
                           FilePath = NULL,
                           OutDir = ".",
                           OutFileType = c("fastq"),
-                          OutFile = NULL,
                           verbose = TRUE,
-                          WriteIntermediate = FALSE) {
+                          WriteIntermediate = FALSE,
+                          KeepIntermediates = FALSE,
+                          OutSuffix = "adaptertrimmed") {
   
-  ## Input checks
-  if (length(qc_obj@files) != 1)
-    stop("RemoveAdapter() expects a LongReadQC object with exactly one file.")
+  # ---- checks ----
+  if (length(qc_obj@files) != 1L)
+    stop("RemoveAdapter() expects a QC object with exactly one file.")
+  if (!is.character(adapterSeq) || length(adapterSeq) != 1L || is.na(adapterSeq) || !nzchar(adapterSeq))
+    stop("RemoveAdapter(): adapterSeq must be non-empty character(1).")
   
+  to_int1 <- function(x, nm, min = 0L) {
+    if (is.null(x) || !is.numeric(x) || length(x) != 1L || is.na(x) || x < min || x %% 1 != 0)
+      stop("RemoveAdapter(): ", nm, " must be a single integer >= ", min, ".")
+    as.integer(x)
+  }
+  MaxMismatchEnd <- to_int1(MaxMismatchEnd, "MaxMismatchEnd", 0L)
+  MinOverlapEnd  <- to_int1(MinOverlapEnd,  "MinOverlapEnd",  0L)
+  MinInternalDistance <- to_int1(MinInternalDistance, "MinInternalDistance", 0L)
+  MinFragmentLength   <- to_int1(MinFragmentLength,   "MinFragmentLength",   1L)
+  
+  if (!dir.exists(OutDir)) dir.create(OutDir, recursive = TRUE, showWarnings = FALSE)
   attr(qc_obj, "._tmp_fastq") <- NULL
   
-  # Choose which file to trim
+  # ---- choose file (supports chaining) ----
   fpath <- if (!is.null(FilePath)) FilePath else qc_obj@files[[1]]
   OriginalFPath <- qc_obj@files[[1]]
+  key <- basename(OriginalFPath)
   fname <- basename(fpath)
+  if (isTRUE(verbose)) message("Adapter trimming: ", key)
   
-  if (!dir.exists(OutDir)) dir.create(OutDir, recursive = TRUE)
-  if (verbose) message("Adapter trimming: ", fname)
-  
-  ## Load reads
   reads <- ImportFile(fpath)
-  
   if (!inherits(reads, "QualityScaledDNAStringSet"))
-    stop("ImportFile() must return a QualityScaledDNAStringSet object.")
+    stop("RemoveAdapter(): ImportFile() must return a QualityScaledDNAStringSet.")
   
-  adapter <- Biostrings::DNAString(adapterSeq)
-  read_widths <- Biostrings::width(reads)
   n_reads <- length(reads)
+  if (n_reads == 0L) {
+    warning("RemoveAdapter(): input contains 0 reads for: ", key)
+    qc_obj@metadata[[key]]$adapter_summary <- list(
+      reads_before = 0L, reads_after = 0L, output_paths = character(0)
+    )
+    return(qc_obj)
+  }
   
-  ## Vectorized adapter hit detection
-  matches <- Biostrings::vmatchPattern(
-    adapter, reads, max.mismatch = MaxMismatchEnd
-  )
+  widths <- Biostrings::width(reads)
   
-  ## extract first hit start / last hit end per read
-  starts <- vapply(matches, function(h)
-    if (length(h)) Biostrings::start(h)[1] else NA_integer_,
-    integer(1)
-  )
+  # ---- vectorized matching (both orientations) ----
+  adapter <- Biostrings::DNAString(adapterSeq)
+  adapter_rc <- Biostrings::reverseComplement(adapter)
   
-  ends <- vapply(matches, function(h)
-    if (length(h)) Biostrings::end(h)[length(h)] else NA_integer_,
-    integer(1)
-  )
+  m_fwd <- Biostrings::vmatchPattern(adapter,    reads, max.mismatch = MaxMismatchEnd)
+  m_rev <- Biostrings::vmatchPattern(adapter_rc, reads, max.mismatch = MaxMismatchEnd)
   
+  # helper: get first start and last end quickly per read (NA if none)
+  first_start <- integer(n_reads); first_start[] <- NA_integer_
+  first_end   <- integer(n_reads); first_end[]   <- NA_integer_
+  last_start  <- integer(n_reads); last_start[]  <- NA_integer_
+  last_end    <- integer(n_reads); last_end[]    <- NA_integer_
   
-  ## END TRIMMING
-  trim_start <- rep(1L, n_reads)
-  trim_end   <- read_widths
-  
-  ## 5' trimming
-  has_5prime <- !is.na(starts) & starts <= MinOverlapEnd
-  trim_start[has_5prime] <- ends[has_5prime] + 1L
-  
-  ## 3' trimming
-  has_3prime <- !is.na(ends) & (read_widths - ends) <= MinOverlapEnd
-  trim_end[has_3prime] <- pmax(starts[has_3prime] - 1L, 1L)
-  
-  ## Apply end trimming
-  trimmed_reads <- IRanges::narrow(reads, start = trim_start, end = trim_end)
-  
-  
-  ## internal adapter trimming
-  chimeric_list <- list()
+  has_any <- logical(n_reads)
   
   for (i in seq_len(n_reads)) {
+    h <- c(m_fwd[[i]], m_rev[[i]])
+    if (length(h) == 0L) next
     
-    hit_coords <- as.data.frame(matches[[i]])
-    if (nrow(hit_coords) < 2) next  
+    # stable ordering without sort() dispatch
+    h <- h[order(IRanges::start(h), IRanges::end(h))]
     
-    seq_i  <- reads[[i]]
-    qual_i <- Biostrings::quality(reads)[[i]]
-    seq_len <- Biostrings::nchar(seq_i)
-    read_name <- names(reads)[i]
-    
-    ## filter hits far from ends
-    valid_hits <- subset(
-      hit_coords,
-      start >= MinInternalDistance &
-        end <= (seq_len - MinInternalDistance)
+    has_any[i] <- TRUE
+    first_start[i] <- IRanges::start(h)[1]
+    first_end[i]   <- IRanges::end(h)[1]
+    last_start[i]  <- IRanges::start(h)[length(h)]
+    last_end[i]    <- IRanges::end(h)[length(h)]
+  }
+  
+  # ---- vectorized END trimming ----
+  trim_start <- rep.int(1L, n_reads)
+  trim_end   <- widths
+  
+  has_5prime <- !is.na(first_start) & first_start <= MinOverlapEnd
+  trim_start[has_5prime] <- pmin(first_end[has_5prime] + 1L, widths[has_5prime] + 1L)
+  
+  has_3prime <- !is.na(last_end) & (widths - last_end) <= MinOverlapEnd
+  trim_end[has_3prime] <- pmax(last_start[has_3prime] - 1L, 1L)
+  
+  keep_endtrim <- trim_end >= trim_start
+  if (!any(keep_endtrim)) {
+    warning("RemoveAdapter(): all reads became invalid after end trimming for: ", key)
+    qc_obj@metadata[[key]]$adapter_summary <- list(
+      reads_before = n_reads, reads_after = 0L, output_paths = character(0)
     )
-    if (nrow(valid_hits) == 0) next
-    
-    ## define split intervals
-    split_starts <- c(1, valid_hits$end + 1)
-    split_ends   <- c(valid_hits$start - 1, seq_len)
-    
-    frag_lengths <- split_ends - split_starts + 1
-    keep_idx <- which(frag_lengths >= MinFragmentLength)
-    if (length(keep_idx) == 0) next
-    
-    ## extract fragment sequences + qualities
-    frags <- mapply(function(s, e, idx) {
-      frag_seq_raw  <- Biostrings::subseq(seq_i, s, e)
-      frag_qual_raw <- Biostrings::subseq(qual_i, s, e)
-      
-      frag_seq <- Biostrings::DNAStringSet(frag_seq_raw)
-      frag_qual <- Biostrings::PhredQuality(
-        Biostrings::BStringSet(as.character(frag_qual_raw))
-      )
-      
-      names(frag_seq)  <- paste0(read_name, "_part", idx)
-      names(frag_qual) <- paste0(read_name, "_part", idx)
-      
-      Biostrings::QualityScaledDNAStringSet(frag_seq, frag_qual)
-    },
-    split_starts[keep_idx],
-    split_ends[keep_idx],
-    seq_along(keep_idx),
-    SIMPLIFY = FALSE)
-    
-    chimeric_list <- c(chimeric_list, frags)
+    return(qc_obj)
   }
   
+  # Use subseq() for stability; it works on QualityScaledDNAStringSet too
+  endtrimmed <- Biostrings::subseq(reads[keep_endtrim],
+                                   start = trim_start[keep_endtrim],
+                                   end   = trim_end[keep_endtrim])
   
-  if (length(chimeric_list) > 0) {
-    chimeric_frags <- do.call(c, chimeric_list)
-  } else {
-    chimeric_frags <- Biostrings::QualityScaledDNAStringSet()
-  }
+  # Enforce min length after end trim
+  endtrimmed <- endtrimmed[Biostrings::width(endtrimmed) >= MinFragmentLength]
   
+  # ---- internal splitting: loop only over reads with >=2 hits ----
+  # We do strict internal search (exact) like your old code, but only for candidates.
+  chimeric_frags <- reads[0]   # safe empty
   
-  if (length(chimeric_frags) > 0) {
+  if (MinInternalDistance > 0L) {
     
-    ## extract original names
-    original_names <- unique(sub("_part.*", "", names(chimeric_frags)))
+    # candidate reads: those with >=2 end-match hits in either direction (cheap heuristic)
+    cand <- which(vapply(seq_len(n_reads), function(i) {
+      length(c(m_fwd[[i]], m_rev[[i]])) >= 2L
+    }, logical(1)))
     
-    ## find them in trimmed_reads
-    to_drop <- which(sub("_part.*", "", names(trimmed_reads)) %in% original_names)
-    
-    if (length(to_drop) > 0) {
-      trimmed_reads <- trimmed_reads[-to_drop]
+    if (length(cand) > 0L) {
+      
+      qual_set <- Biostrings::quality(reads)
+      
+      for (i in cand) {
+        seq_i  <- reads[[i]]
+        qual_i <- qual_set[[i]]
+        L <- widths[i]
+        
+        # strict internal exact hits (both orientations)
+        h_mid <- c(
+          Biostrings::matchPattern(adapter,    seq_i, max.mismatch = 0),
+          Biostrings::matchPattern(adapter_rc, seq_i, max.mismatch = 0)
+        )
+        if (length(h_mid) < 1L) next
+        h_mid <- h_mid[order(IRanges::start(h_mid), IRanges::end(h_mid))]
+        
+        valid_internal <- which(
+          IRanges::start(h_mid) >= MinInternalDistance &
+            IRanges::end(h_mid) <= (L - MinInternalDistance)
+        )
+        if (length(valid_internal) == 0L) next
+        
+        read_name <- names(reads)[i]
+        if (is.null(read_name) || is.na(read_name) || !nzchar(read_name))
+          read_name <- paste0("read", i)
+        
+        if (isTRUE(verbose)) message("Splitting chimeric read ", read_name)
+        
+        split_starts <- c(1L, IRanges::end(h_mid)[valid_internal] + 1L)
+        split_ends   <- c(IRanges::start(h_mid)[valid_internal] - 1L, L)
+        
+        for (frag_idx in seq_along(split_starts)) {
+          s <- split_starts[frag_idx]
+          e <- split_ends[frag_idx]
+          if (e < s) next
+          if ((e - s + 1L) < MinFragmentLength) next
+          
+          frag_seq_raw  <- Biostrings::subseq(seq_i,  start = s, end = e)
+          frag_qual_raw <- Biostrings::subseq(qual_i, start = s, end = e)
+          
+          frag_seq <- Biostrings::DNAStringSet(frag_seq_raw)
+          frag_qual <- Biostrings::PhredQuality(Biostrings::BStringSet(as.character(frag_qual_raw)))
+          
+          nm <- paste0(read_name, "_part", frag_idx)
+          names(frag_seq)  <- nm
+          names(frag_qual) <- nm
+          
+          chimeric_frags <- c(chimeric_frags, Biostrings::QualityScaledDNAStringSet(frag_seq, frag_qual))
+        }
+      }
     }
   }
   
+  # Remove originals that were split, then add fragments
+  if (length(chimeric_frags) > 0L) {
+    originals <- unique(sub("_part.*", "", names(chimeric_frags)))
+    drop_idx <- which(sub("_part.*", "", names(endtrimmed)) %in% originals)
+    if (length(drop_idx) > 0L) endtrimmed <- endtrimmed[-drop_idx]
+  }
   
-  ## Combine final outputs
-  all_trimmed <- c(trimmed_reads, chimeric_frags)
+  final_reads <- c(endtrimmed, chimeric_frags)
+  final_reads <- final_reads[Biostrings::width(final_reads) >= MinFragmentLength]
   
-  ## keep only fragments >= MinFragmentLength
-  keep <- Biostrings::width(all_trimmed) >= MinFragmentLength
-  all_trimmed <- all_trimmed[keep]
+  n_after <- length(final_reads)
+  drop_frac <- (n_reads - n_after) / n_reads
   
-  dna <- Biostrings::DNAStringSet(all_trimmed)
-  qual <- Biostrings::quality(all_trimmed)
-  names(qual) <- names(dna)
+  if (n_after == 0L) {
+    warning("RemoveAdapter(): no reads remained after adapter trimming for: ", key)
+    qc_obj@metadata[[key]]$adapter_summary <- list(
+      reads_before = n_reads, reads_after = 0L, output_paths = character(0)
+    )
+    return(qc_obj)
+  }
   
-  all_trimmed <- Biostrings::QualityScaledDNAStringSet(dna, qual)
+  if (drop_frac >= 0.50) {
+    warning("RemoveAdapter(): trimming removed ",
+            round(drop_frac * 100, 1), "% of reads for: ", key,
+            " (", n_after, "/", n_reads, " kept).")
+  }
+ 
   
-  
-  ## Write output
-  base_name <- if (!is.null(OutFile))
-    RemoveExt(OutFile) else RemoveExt(OriginalFPath)
-  
-  out_paths <- WriteReadOutputs(
-    reads = all_trimmed,
-    base_name = paste0(base_name, "_adaptertrimmed"),
-    OutDir = OutDir,
-    OutFileType = OutFileType
-  )
-  
-  
-  ## Update metadata
-  qc_obj@metadata[[basename(OriginalFPath)]]$adapter_summary <- list(
+  out_paths <- character(0)
+  if (isTRUE(KeepIntermediates)) {
+    base_name <- paste0(RemoveExt(OriginalFPath), "_", OutSuffix)
+    out_paths <- WriteReadOutputs(
+      reads = final_reads,
+      base_name = base_name,
+      OutDir = OutDir,
+      OutFileType = OutFileType
+    )
+  }
+  qc_obj@metadata[[key]]$adapter_summary <- list(
     reads_before = n_reads,
-    reads_after  = length(all_trimmed),
+    reads_after  = n_after,
     output_paths = out_paths
   )
   
-  if (verbose) {
-    message("Adapter trimming done for ", fname,
-            ": kept ", length(all_trimmed), " reads (",
-            length(chimeric_frags), " chimeric fragments).")
-  }
+  if (isTRUE(verbose)) message("Adapter trimming done for ", key, ": kept ", n_after, " reads.")
   
   tmp_fastq <- NULL
-  
-  if (isTRUE(WriteIntermediate) && length(all_trimmed) > 0L) {
-    
+  if (isTRUE(WriteIntermediate)) {
     stem <- RemoveExt(basename(OriginalFPath))
     tmp_base <- paste0(stem, "_adapter_tmp_", Sys.getpid(), "_", sample.int(1e9, 1))
-    
     tmp_dir <- file.path(tempdir(), "longR_intermediate")
     dir.create(tmp_dir, recursive = TRUE, showWarnings = FALSE)
-    
-    tmp_paths <- WriteReadOutputs(
-      reads = all_trimmed,
-      base_name = tmp_base,
-      OutDir = tmp_dir,
-      OutFileType = "fastq",
-      Verbose = FALSE
-    )
-    
+    tmp_paths <- WriteReadOutputs(final_reads, tmp_base, tmp_dir, "fastq", Verbose = FALSE)
     tmp_fastq <- tmp_paths[[1]]
   }
   
-  
   attr(qc_obj, "._tmp_fastq") <- tmp_fastq
-  
-  base::return(qc_obj)
+  qc_obj
 }
-
