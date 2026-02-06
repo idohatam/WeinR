@@ -239,7 +239,7 @@ ProcessReads <- function(qc_obj,
   }
   
   if (isTRUE(render_report)) {
-    CreateReport(
+    Reporter(
       mfa         = qc_obj,
       path        = report_path,
       title       = title,

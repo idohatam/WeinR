@@ -136,7 +136,7 @@ LinkAndReport <- function(
   }
   
   if (isTRUE(render_report)) {
-    CreateReport(
+    Reporter(
       mfa         = qc_obj,
       path        = report_path,
       title       = report_name,
