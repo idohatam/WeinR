@@ -1,22 +1,22 @@
-<table>
-  <tr>
-    <td width="180" align="left">
-      <img src="inst/images/Logo_Clear.png" width="130">
-    </td>
+<p align="center">
+  <img src="inst/images/Logo_Clear.png" width="120" alt="Langara Bioinformatics logo">
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="inst/images/dogdna.png" width="140" alt="WeinR logo">
+</p>
 
-    <td align="center">
-      <p>The Bachelor of Bioinformatics presents</p>
-      <h2>WeinR</h2>
-      <p>
-        Workflow for Evaluating & Inspecting<br>
-        Nanopore Reads
-      </p>
-    </td>
+<p align="center">
+  <sub>The Bachelor of Bioinformatics presents</sub>
+</p>
 
-    <td width="180" align="right">
-      <img src="inst/images/dogdna.png" width="130">
-    </td>
-  </tr>
-</table>
+<h1 align="center">WeinR</h1>
+
+<p align="center">
+  Workflow for Evaluating &amp; Inspecting<br>
+  Nanopore Reads
+</p>
 
 ---
+
+## About
+
+Welcome to the Bioinformatics project repository...
