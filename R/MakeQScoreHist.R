@@ -70,7 +70,7 @@ make_quality_plot <- function(meanprQscore, avgQScore = NULL) {
     ggplot2::labs(
       x = "Average Phred Q-Score",
       y = "Read Count",
-      title = "Average Q-Score Distribution"
+      #title = "Average Q-Score Distribution"
     ) +
     
     ggplot2::theme_minimal(base_size = 15) +
