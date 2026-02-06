@@ -25,7 +25,7 @@
 #'   "data/Nakazawaea_populi.fastq"
 #' )
 #'
-#' qc_obj <- LinkAndReport(
+#' qc_obj <- CreateReport(
 #'   files = fastq_files,
 #'   report_name = "Fully_linked_test",
 #'   render_report = TRUE,
@@ -36,7 +36,7 @@
 #' }
 #'
 #' @export
-LinkAndReport <- function(
+CreateReport <- function(
     files,
     report_name,
     render_report = TRUE,
@@ -115,7 +115,7 @@ LinkAndReport <- function(
       call. = FALSE
     )
   }
-
+  
   utils::write.csv(sm, file = out_csv, row.names = FALSE)
   
   reports_dir <- file.path(base_dir, "reports")
@@ -136,7 +136,7 @@ LinkAndReport <- function(
   }
   
   if (isTRUE(render_report)) {
-    CreateReport(
+    Reporter(
       mfa         = qc_obj,
       path        = report_path,
       title       = report_name,

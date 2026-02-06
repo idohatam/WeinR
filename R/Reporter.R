@@ -33,7 +33,7 @@
 #' The stylesheet is shipped with the package at `inst/styles/colorblind.css`.
 #' For portability, it is copied next to the generated `.Rmd` and referenced
 #' using a relative path in the YAML header.
-CreateReport <- function(
+Reporter <- function(
     path          = "report.Rmd",
     title         = "My Report",
     author        = Sys.info()[["user"]],
@@ -100,7 +100,7 @@ CreateReport <- function(
     sprintf("    code_folding: %s", code_folding),
     "    df_print: paged",
     "    self_contained: true",
-#    '    css: "colorblind.css"',
+    #    '    css: "colorblind.css"',
     sprintf('    css: "%s"', pkg_css),
     "params:",
     "  mfa: !r NULL",
