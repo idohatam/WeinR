@@ -5,7 +5,7 @@
 #' (`FilterLong()`), adapter trimming (`RemoveAdapter()`), and 5'/3' end trimming
 #' (`TrimLong()`), chaining steps via temporary FASTQ files when intermediate writing
 #' is enabled. After processing all files, an HTML report can be generated via
-#' `CreateReport()`.
+#' `Reporter()`.
 #'
 #' @param qc_obj A `LongReadQC` object containing one or more input files in `qc_obj@files`,
 #'   with corresponding metrics already computed in `qc_obj@metrics` and
@@ -37,7 +37,7 @@
 #'   Reports are written to `file.path(getwd(), "WeinR_Outputs", "Reports", outpath)`,
 #'   producing `.Rmd` and `.html`.
 #' @param title Character(1). Title used in the generated report. Defaults to `outpath`.
-#' @param render_report Logical(1). If `TRUE`, generate an HTML report with `CreateReport()`.
+#' @param render_report Logical(1). If \code{TRUE}, generate an HTML report with \code{Reporter()}.
 #' @param force Logical(1). If `FALSE` and an existing report `.Rmd` or `.html` already exists
 #'   for `outpath`, the function errors. If `TRUE`, allows overwrite.
 #' @param verbose Logical(1). If `TRUE`, print progress messages for each file and step.
@@ -60,14 +60,13 @@
 #' }
 #'
 #' Steps may be chained using temporary FASTQ files stored as
-#' `attr(single_qc, "._tmp_fastq")` produced by `FilterLong()` / `RemoveAdapter()` when
-#' intermediate writing is enabled. Temporary files are cleaned up automatically after each
-#' file unless `KeepIntermediates = TRUE` (or the intermediate is also the final output).
+#' `attr(single_qc, "._tmp_fastq")` produced by `FilterLong()` / `RemoveAdapter()`. 
+#' Temporary files are cleaned up automatically after each file
 #'
 #' If a step results in `reads_after == 0L` (as recorded in the step summary in metadata),
 #' remaining steps for that file are skipped and the workflow continues to the next input file.
 #'
-#' @seealso [FilterLong()], [RemoveAdapter()], [TrimLong()], [CreateReport()]
+#' @seealso [FilterLong()], [RemoveAdapter()], [TrimLong()], [Reporter()]
 #'
 #' @examples
 #' \dontrun{
