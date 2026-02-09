@@ -6,7 +6,7 @@
 #' @param reads An \code{XStringSet}-compatible object containing reads to write.
 #'   For \code{"fastq"} and \code{"bam"} outputs, \code{reads} must be a
 #'   \code{Biostrings::QualityScaledDNAStringSet}.
-#' @param base_name Character(1). Output filename stem (without extension).
+#' @param BaseName Character(1). Output filename stem (without extension).
 #' @param OutDir Character(1). Output directory. Created if it does not exist.
 #' @param OutFileType Character vector specifying output format(s). Supported values
 #'   are \code{"fastq"}, \code{"fasta"}, and \code{"bam"}. Multiple formats may be
@@ -17,13 +17,13 @@
 #'   Returns \code{character(0)} if \code{reads} contains \code{0} sequences.
 #'
 #' @details
-#' FASTA and FASTQ outputs are written using \code{writeLines()} with simple
-#' record formatting. BAM output is created by writing a temporary SAM file and
-#' converting it via \code{Rsamtools::asBam()}.
+#' FASTA is written with \code{Biostrings::writeXStringSet()}. FASTQ is written with
+#' \code{ShortRead::writeFastq()} for efficient streaming. BAM output is created by
+#' writing a temporary SAM file and converting it via \code{Rsamtools::asBam()}.
 #'
 #' @keywords internal
 WriteReadOutputs <- function(reads,
-                             base_name,
+                             BaseName,
                              OutDir = ".",
                              OutFileType = c("fastq"),
                              Verbose = TRUE) {
@@ -31,69 +31,58 @@ WriteReadOutputs <- function(reads,
   if (!dir.exists(OutDir)) dir.create(OutDir, recursive = TRUE, showWarnings = FALSE)
   
   if (!inherits(reads, "XStringSet"))
-    stop("WriteReadOutputs(): reads must be an XStringSet-compatible object.")
+    stop("WriteReadOutputs(): reads must be an XStringSet-compatible object.", call. = FALSE)
   
   n_reads <- length(reads)
   if (n_reads == 0L) return(character(0))
   
-  out_paths <- character(0)
-  
-  # Ensure names exist (FASTA/FASTQ/BAM require IDs)
+  # Ensure IDs exist and are safe for headers/QNAME
   ids <- names(reads)
-  if (is.null(ids) || any(is.na(ids)) || any(!nzchar(ids))) {
+  if (is.null(ids) || length(ids) != n_reads || anyNA(ids) || any(!nzchar(ids))) {
     ids <- paste0("read_", seq_len(n_reads))
   }
+  ids <- gsub("[\\r\\n\\t]+", "_", ids)
+  
+  out_paths <- character(0)
   
   for (otype in OutFileType) {
     otype <- tolower(otype)
     if (!otype %in% c("fasta", "fastq", "bam"))
-      stop("WriteReadOutputs(): unsupported output type: ", otype)
+      stop("WriteReadOutputs(): unsupported output type: ", otype, call. = FALSE)
     
-    out_ext <- switch(otype,
-                      fasta = "fasta",
-                      fastq = "fastq",
-                      bam   = "bam")
+    out_ext  <- switch(otype, fasta = "fasta", fastq = "fastq", bam = "bam")
+    out_path <- file.path(OutDir, paste0(BaseName, ".", out_ext))
     
-    out_path <- file.path(OutDir, paste0(base_name, ".", out_ext))
-    
-    # FASTA (writeLines)
     if (otype == "fasta") {
-      seqs <- as.character(Biostrings::DNAStringSet(reads))
-      fasta_lines <- as.vector(rbind(paste0(">", ids), seqs))
-      writeLines(fasta_lines, con = out_path)
+      
+      Biostrings::writeXStringSet(
+        Biostrings::DNAStringSet(reads),
+        filepath = out_path,
+        format   = "fasta"
+      )
       
     } else if (otype == "fastq") {
-      # FASTQ requires qualities
+      
       if (!inherits(reads, "QualityScaledDNAStringSet")) {
-        stop("WriteReadOutputs(): FASTQ output requires a QualityScaledDNAStringSet.")
+        stop("WriteReadOutputs(): FASTQ output requires a QualityScaledDNAStringSet.", call. = FALSE)
       }
       
-      seqs  <- as.character(Biostrings::DNAStringSet(reads))
-      quals <- as.character(Biostrings::quality(reads))
+      sr <- ShortRead::ShortReadQ(
+        sread   = Biostrings::DNAStringSet(reads),
+        quality = ShortRead::FastqQuality(Biostrings::quality(reads)),
+        id      = Biostrings::BStringSet(ids)
+      )
       
-      fastq_lines <- character(4L * n_reads)
-      idx <- seq.int(1L, by = 4L, length.out = n_reads)
-      fastq_lines[idx]     <- paste0("@", ids)
-      fastq_lines[idx + 1] <- seqs
-      fastq_lines[idx + 2] <- "+"
-      fastq_lines[idx + 3] <- quals
-      
-      writeLines(fastq_lines, con = out_path)
+      ShortRead::writeFastq(sr, out_path, compress = FALSE)
       
     } else if (otype == "bam") {
-      # BAM requires qualities
+      
       if (!inherits(reads, "QualityScaledDNAStringSet")) {
         stop("WriteReadOutputs(): BAM output requires a QualityScaledDNAStringSet.", call. = FALSE)
       }
       
-      n <- length(reads)
-      qname <- names(reads)
-      if (is.null(qname) || any(is.na(qname)) || any(!nzchar(qname))) {
-        qname <- paste0("read_", seq_len(n))
-      }
-      
       # QNAME must not contain whitespace: keep only first token
-      qname <- sub("\\s.*$", "", qname)
+      qname <- sub("\\s.*$", "", ids)
       qname <- gsub("[\\t\\r\\n ]+", "_", qname)
       
       seq  <- as.character(Biostrings::DNAStringSet(reads))
@@ -116,19 +105,20 @@ WriteReadOutputs <- function(reads,
       
       temp_sam <- tempfile(fileext = ".sam")
       
-      # Minimal SAM header
       writeLines(c(
         "@HD\tVN:1.6\tSO:unsorted",
         "@SQ\tSN:*\tLN:0"
       ), con = temp_sam)
       
-      write.table(bam_df, file = temp_sam, sep = "\t", quote = FALSE,
-                  row.names = FALSE, col.names = FALSE, append = TRUE)
+      write.table(
+        bam_df, file = temp_sam, sep = "\t", quote = FALSE,
+        row.names = FALSE, col.names = FALSE, append = TRUE
+      )
       
       Rsamtools::asBam(
         temp_sam,
         destination = tools::file_path_sans_ext(out_path),
-        overwrite = TRUE
+        overwrite   = TRUE
       )
       unlink(temp_sam)
     }
@@ -139,4 +129,3 @@ WriteReadOutputs <- function(reads,
   
   out_paths
 }
-

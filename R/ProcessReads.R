@@ -44,7 +44,7 @@
 #' @param KeepIntermediates Logical(1). If `TRUE`, keep intermediate FASTQ files produced
 #'   between steps (when step functions are called with `WriteIntermediate = TRUE`).
 #'   If `FALSE`, intermediates are cleaned up after each file.
-#' @param final_suffix Character(1). Suffix used for the final output file produced by the
+#' @param FinalSuffix Character(1). Suffix used for the final output file produced by the
 #'   last step that runs (e.g., `"processed"`).
 #'
 #' @return The updated `LongReadQC` object with per-file metadata updated in `qc_obj@metadata`.
@@ -113,7 +113,7 @@ ProcessReads <- function(qc_obj,
                          force = FALSE,
                          verbose = TRUE,
                          KeepIntermediates = FALSE,
-                         final_suffix = "processed") {
+                         FinalSuffix = "processed") {
   
   message("Starting processing workflow for ", length(qc_obj@files), " file(s)...")
   
@@ -173,7 +173,7 @@ ProcessReads <- function(qc_obj,
           OutDir = processed_dir,
           WriteIntermediate = TRUE,
           KeepIntermediates = KeepIntermediates || is_final,
-          OutSuffix = if (is_final) final_suffix else step_suffix("filtered")
+          OutSuffix = if (is_final) FinalSuffix else step_suffix("filtered")
         )
         
         filt_sum <- single_qc@metadata[[key]]$filter_summary
@@ -213,7 +213,7 @@ ProcessReads <- function(qc_obj,
           verbose = verbose,
           WriteIntermediate = TRUE,
           KeepIntermediates = KeepIntermediates || is_final,
-          OutSuffix = if (is_final) final_suffix else step_suffix("adaptertrimmed")
+          OutSuffix = if (is_final) FinalSuffix else step_suffix("adaptertrimmed")
         )
         
         adap_sum <- single_qc@metadata[[key]]$adapter_summary
@@ -240,7 +240,7 @@ ProcessReads <- function(qc_obj,
           FilePath = current_input,
           OutDir = processed_dir,                 
           OutFileType = OutFileType,
-          OutSuffix = final_suffix                
+          OutSuffix = FinalSuffix                
         )
         
         trim_sum <- single_qc@metadata[[key]]$trim_summary
