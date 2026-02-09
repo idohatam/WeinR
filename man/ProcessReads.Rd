@@ -6,7 +6,6 @@
 \usage{
 ProcessReads(
   qc_obj,
-  OutDir = ".",
   filter = FALSE,
   MinAvgQS = 20,
   MinLength = 100,
@@ -30,8 +29,6 @@ ProcessReads(
 \item{qc_obj}{A \code{LongReadQC} object containing one or more input files in \code{qc_obj@files},
 with corresponding metrics already computed in \code{qc_obj@metrics} and
 \code{qc_obj@summary_metrics}.}
-
-\item{OutDir}{Character(1). Output directory for processed files. Created if it does not exist.}
 
 \item{filter}{Logical(1). If \code{TRUE}, run \code{FilterLong()} prior to other steps.}
 
@@ -104,7 +101,6 @@ The report path is checked before rendering; set \code{force = TRUE} to overwrit
 
 # 1) Filter only + report
 qc2 <- ProcessReads(qc_obj,
-  OutDir = "outputs",
   filter = TRUE,
   MinAvgQS = 20,
   MinLength = 100,
@@ -115,7 +111,6 @@ qc2 <- ProcessReads(qc_obj,
 
 # 2) Filter + adapter trimming + end trimming (no report)
 qc3 <- ProcessReads(qc_obj,
-  OutDir = "outputs",
   filter = TRUE,
   AdapterSeq = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA",
   Start = 10,

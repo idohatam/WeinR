@@ -23,16 +23,12 @@
 #'   rendered HTML in a browser.
 #' @param mfa A `LongReadQC` object (required). Used by the report as
 #'   `params$mfa`.
-#' @param metadata Logical. If `TRUE`, include a metadata table summarizing
+#' @param metadata Logical. If `TRUE`, include a processing metadata table
+#'   (filter/adapter/trim reads before/after + output filenames) if present.
 #'
 #' @return If `render_html=TRUE`, an (invisible) list with elements `rmd` and
 #'   `html` giving normalized paths to the generated files. If `render_html=FALSE`,
 #'   an (invisible) list with element `rmd`.
-#'
-#' @details
-#' The stylesheet is shipped with the package at `inst/styles/colorblind.css`.
-#' For portability, it is copied next to the generated `.Rmd` and referenced
-#' using a relative path in the YAML header.
 Reporter <- function(
     path          = "report.Rmd",
     title         = "My Report",
@@ -69,22 +65,8 @@ Reporter <- function(
       call. = FALSE
     )
   }
-  ###########
-  ###########
-  ###########
-  ###########
-  # Locate package CSS (installed from inst/styles/colorblind.css)
-  #pkg_css <- system.file("styles", "colorblind.css", package = "WeinR")
-  #if (!nzchar(pkg_css)) {
-  #  stop("Could not find 'styles/colorblind.css' in the installed WeinR package.", call. = FALSE)
-  #}
-  ###########
-  ###########
-  ###########
-  ###########
-  # ---- DEV MODE: load CSS directly from inst/ ----
-  # NOTE: This is for development only. Replace with system.file()
-  # before release / Bioconductor submission.
+  
+  # DEV MODE css (absolute path is fine)
   pkg_css <- normalizePath(file.path("inst", "styles", "colorblind.css"),
                            winslash = "/", mustWork = TRUE)
   
@@ -100,7 +82,6 @@ Reporter <- function(
     sprintf("    code_folding: %s", code_folding),
     "    df_print: paged",
     "    self_contained: true",
-    #    '    css: "colorblind.css"',
     sprintf('    css: "%s"', pkg_css),
     "params:",
     "  mfa: !r NULL",
@@ -115,41 +96,57 @@ Reporter <- function(
     "qc <- params$mfa",
     "stopifnot(methods::is(qc, 'LongReadQC'))",
     "",
-    "# Require suggested packages only when rendering the report",
     "stopifnot(requireNamespace('ggplot2', quietly = TRUE))",
     "stopifnot(requireNamespace('DT', quietly = TRUE))",
     "stopifnot(requireNamespace('gridExtra', quietly = TRUE))",
+    "stopifnot(requireNamespace('grid', quietly = TRUE))",
     "",
-    "# Render a gridExtra arrangement to a PNG at a chosen width, then include it",
-    "render_grid_png <- function(grobs, max_cols = 3, height_in = 4, dpi = 120) {",
+    "# Render a grid of ggplots OR image-file paths to a single PNG, then include it",
+    "render_grid_png <- function(grobs, max_cols = 3, height_in = 3.5, dpi = 300) {",
+    "  if (is.null(grobs)) return(invisible(NULL))",
+    "",
+    "  # Flatten nested lists",
+    "  if (is.list(grobs) && !inherits(grobs, 'gg')) {",
+    "    grobs_flat <- unlist(grobs, recursive = TRUE, use.names = FALSE)",
+    "  } else {",
+    "    grobs_flat <- grobs",
+    "  }",
+    "",
+    "  # If these are file paths -> build rasterGrobs, then arrange",
+    "  if (is.character(grobs_flat)) {",
+    "    paths <- grobs_flat[!is.na(grobs_flat) & nzchar(grobs_flat) & file.exists(grobs_flat)]",
+    "    if (!length(paths)) return(invisible(NULL))",
+    "",
+    "    stopifnot(requireNamespace('png', quietly = TRUE))",
+    "",
+    "    rasters <- lapply(paths, function(p) {",
+    "      img <- png::readPNG(p)",
+    "      grid::rasterGrob(img, interpolate = TRUE)",
+    "    })",
+    "",
+    "    n <- length(rasters)",
+    "    ncol <- min(max_cols, n)",
+    "    nrow <- ceiling(n / ncol)",
+    "    width_in <- if (ncol == 1) 8 else if (ncol == 2) 11 else 14",
+    "",
+    "    tmp <- tempfile(fileext = '.png')",
+    "    grDevices::png(filename = tmp, width = width_in * dpi, height = height_in * nrow * dpi, res = dpi)",
+    "    gridExtra::grid.arrange(grobs = rasters, ncol = ncol, nrow = nrow)",
+    "    grDevices::dev.off()",
+    "    return(knitr::include_graphics(tmp))",
+    "  }",
+    "",
+    "  # Otherwise assume plot grobs/ggplots",
     "  n <- length(grobs)",
     "  if (!n) return(invisible(NULL))",
-    "  # ---- NEW: if grobs are file paths, include directly ----",
-    "  if (is.list(grobs)) {",
-    "    # common case: list of character paths (or nested lists of character paths)",
-    "    flat <- unlist(grobs, use.names = FALSE)",
-    "    if (is.character(flat)) {",
-    "      flat <- flat[!is.na(flat) & nzchar(flat) & file.exists(flat)]",
-    "      if (!length(flat)) return(invisible(NULL))",
-    "      return(knitr::include_graphics(flat))",
-    "    }",
-    "  }",
-    "  if (is.character(grobs)) {",
-    "    grobs <- grobs[!is.na(grobs) & nzchar(grobs) & file.exists(grobs)]",
-    "    if (!length(grobs)) return(invisible(NULL))",
-    "    return(knitr::include_graphics(grobs))",
-    "  }",
-    "",
     "  ncol <- min(max_cols, n)",
     "  nrow <- ceiling(n / ncol)",
-    "",
-    "  width_in <- if (ncol == 1) 10 else if (ncol == 2) 12 else 30",
+    "  width_in <- if (ncol == 1) 8 else if (ncol == 2) 11 else 14",
     "",
     "  tmp <- tempfile(fileext = '.png')",
-    "  grDevices::png(filename = tmp, width = width_in * dpi, height = height_in * dpi, res = dpi)",
+    "  grDevices::png(filename = tmp, width = width_in * dpi, height = height_in * nrow * dpi, res = dpi)",
     "  gridExtra::grid.arrange(grobs = grobs, ncol = ncol, nrow = nrow)",
     "  grDevices::dev.off()",
-    "",
     "  knitr::include_graphics(tmp)",
     "}",
     "```",
@@ -158,14 +155,10 @@ Reporter <- function(
     "## **Summary Statistics by File**",
     "```{r}",
     "summ <- qc@summary_metrics",
-    "",
-    "# Drop rows with missing or empty file names",
     "if (!is.null(summ) && NROW(summ) > 0 && 'file' %in% names(summ)) {",
     "  summ <- summ[!is.na(summ$file) & nzchar(trimws(summ$file)), , drop = FALSE]",
     "}",
-    "",
     "if (!is.null(summ) && NROW(summ) > 0) {",
-    "  # Ensure file column is first",
     "  if ('file' %in% names(summ)) {",
     "    cols <- c('file', setdiff(names(summ), 'file'))",
     "    summ <- summ[, cols, drop = FALSE]",
@@ -177,16 +170,15 @@ Reporter <- function(
     "    caption = 'Per-file summary metrics',",
     "    class = 'stripe hover'",
     "  )",
-    "} else {",
-    "  cat('No summary metrics available.')",
-    "}",
+    "} else { cat('No summary metrics available.') }",
     "```",
     "</div>",
     "",
     "<hr class='section-sep'/>",
     ""
   )
-  if (metadata == TRUE) {
+  
+  if (isTRUE(metadata)) {
     body <- c(
       body,
       "<div class='section-card'>",
@@ -194,100 +186,96 @@ Reporter <- function(
       "```{r}",
       "md <- qc@metadata",
       "",
-      "if (length(md)) {",
+      "get_step_tbl <- function(md, step_name, pretty_step) {",
       "  files <- names(md)",
+      "  if (!length(files)) return(NULL)",
       "",
       "  reads_before <- vapply(files, function(f) {",
-      "    fs <- md[[f]][['filter_summary']]",
-      "    if (is.null(fs) || is.null(fs[['reads_before']])) return(NA_integer_)",
-      "    as.integer(fs[['reads_before']])",
+      "    s <- md[[f]][[step_name]]",
+      "    if (is.null(s) || is.null(s[['reads_before']])) return(NA_integer_)",
+      "    as.integer(s[['reads_before']])",
       "  }, integer(1))",
       "",
       "  reads_after <- vapply(files, function(f) {",
-      "    fs <- md[[f]][['filter_summary']]",
-      "    if (is.null(fs) || is.null(fs[['reads_after']])) return(NA_integer_)",
-      "    as.integer(fs[['reads_after']])",
+      "    s <- md[[f]][[step_name]]",
+      "    if (is.null(s) || is.null(s[['reads_after']])) return(NA_integer_)",
+      "    as.integer(s[['reads_after']])",
       "  }, integer(1))",
       "",
-      "  filtered_fname <- vapply(files, function(f) {",
-      "    fs <- md[[f]][['filter_summary']]",
-      "    op <- if (!is.null(fs)) fs[['output_paths']] else NULL",
-      "    if (is.null(op) || length(op) == 0 || is.na(op[1])) return(NA_character_)",
-      "    basename(op[1])  # substring after last '/'",
+      "  out_files <- vapply(files, function(f) {",
+      "    s <- md[[f]][[step_name]]",
+      "    op <- if (!is.null(s)) s[['output_paths']] else NULL",
+      "    if (is.null(op) || length(op) == 0 || all(is.na(op))) return(NA_character_)",
+      "    paste(basename(op), collapse = ', ')",
       "  }, character(1))",
       "",
-      "  meta_tbl <- data.frame(",
+      "  data.frame(",
       "    Filename = files,",
-      "    `Pre-filter Reads` = reads_before,",
-      "    `Post-filter Reads` = reads_after,",
-      "    `Filtered Filename` = filtered_fname,",
+      "    Step = pretty_step,",
+      "    `Reads Before` = reads_before,",
+      "    `Reads After` = reads_after,",
+      "    `Output Filenames` = out_files,",
       "    check.names = FALSE,",
       "    stringsAsFactors = FALSE",
       "  )",
+      "}",
       "",
+      "if (length(md)) {",
+      "  tbl_filter  <- get_step_tbl(md, 'filter_summary',  'Filter')",
+      "  tbl_adapter <- get_step_tbl(md, 'adapter_summary', 'Adapter')",
+      "  tbl_trim    <- get_step_tbl(md, 'trim_summary',    'Trim')",
+      "  meta_tbl <- do.call(rbind, Filter(Negate(is.null), list(tbl_filter, tbl_adapter, tbl_trim)))",
+      "  meta_tbl <- meta_tbl[, c('Filename','Step','Reads Before','Reads After','Output Filenames'), drop = FALSE]",
       "  DT::datatable(",
       "    meta_tbl,",
-      "    options = list(scrollX = TRUE, pageLength = 15, autoWidth = TRUE),",
+      "    options = list(scrollX = TRUE, pageLength = 25, autoWidth = TRUE),",
       "    rownames = FALSE,",
-      "    caption = 'Filtering metadata',",
+      "    caption = 'Processing metadata',",
       "    class = 'stripe hover'",
       "  ) |>",
-      "  DT::formatRound(",
-      "    columns = c('Pre-filter Reads', 'Post-filter Reads'),",
-      "    digits = 0,",
-      "    mark = ','",
-      "  )",
-      "} else {",
-      "  cat('No metadata available.')",
-      "}",
+      "  DT::formatRound(columns = c('Reads Before','Reads After'), digits = 0, mark = ',')",
+      "} else { cat('No metadata available.') }",
       "```",
-      "</div>"
+      "</div>",
+      "",
+      "<hr class='section-sep'/>",
+      ""
     )
   }
+  
   body <- c(
     body,
-    "",
     "<div class='section-card'>",
     "## **Plots**",
     "",
     "### **Read Length Distribution**",
-    "```{r, fig.align='center', out.width='100%'}",
+    "```{r, fig.align='left', out.width='70%'}",
     "lens <- Filter(Negate(is.null), lapply(qc@plots, function(ps) if (is.list(ps)) ps[['length_hist']] else NULL))",
-    "if (length(lens)) {",
-    "  render_grid_png(lens, max_cols = 3, height_in = 4)",
-    "} else { cat('No length histograms available') }",
+    "if (length(lens)) render_grid_png(lens, max_cols = 3, height_in = 3.5) else cat('No length histograms available')",
     "```",
     "",
     "### **Average Q-score Distribution**",
-    "```{r, fig.align='center', out.width='100%'}",
+    "```{r, fig.align='left', out.width='70%'}",
     "qhist <- Filter(Negate(is.null), lapply(qc@plots, function(ps) if (is.list(ps)) ps[['quality_hist']] else NULL))",
-    "if (length(qhist)) {",
-    "  render_grid_png(qhist, max_cols = 3, height_in = 4)",
-    "} else { cat('No Q-score histograms available') }",
+    "if (length(qhist)) render_grid_png(qhist, max_cols = 3, height_in = 3.5) else cat('No Q-score histograms available')",
     "```",
     "",
     "### **GC-content Distribution**",
-    "```{r, fig.align='center', out.width='100%'}",
+    "```{r, fig.align='left', out.width='70%'}",
     "gch <- Filter(Negate(is.null), lapply(qc@plots, function(ps) if (is.list(ps)) ps[['gc_hist']] else NULL))",
-    "if (length(gch)) {",
-    "  render_grid_png(gch, max_cols = 3, height_in = 4)",
-    "} else { cat('No GC-content histograms available') }",
+    "if (length(gch)) render_grid_png(gch, max_cols = 3, height_in = 3.5) else cat('No GC-content histograms available')",
     "```",
     "",
     "### **Read Quality vs Read Length**",
-    "```{r, fig.align='center', out.width='100%'}",
+    "```{r, fig.align='left', out.width='70%'}",
     "qvl <- Filter(Negate(is.null), lapply(qc@plots, function(ps) if (is.list(ps)) ps[['q_vs_length']] else NULL))",
-    "if (length(qvl)) {",
-    "  render_grid_png(qvl, max_cols = 3, height_in = 4)",
-    "} else { cat('No quality-vs-length plots available') }",
+    "if (length(qvl)) render_grid_png(qvl, max_cols = 3, height_in = 3.5) else cat('No quality-vs-length plots available')",
     "```",
     "",
     "### **Per-position quality (binned at 2000 bp)**",
-    "```{r, fig.align='center', out.width='100%'}",
+    "```{r, fig.align='left', out.width='70%'}",
     "ppq <- Filter(Negate(is.null), lapply(qc@plots, function(ps) if (is.list(ps)) ps[['per_pos_q']] else NULL))",
-    "if (length(ppq)) {",
-    "  render_grid_png(ppq, max_cols = 3, height_in = 4)",
-    "} else { cat('No per-position quality plots available') }",
+    "if (length(ppq)) render_grid_png(ppq, max_cols = 3, height_in = 3.5) else cat('No per-position quality plots available')",
     "```",
     "</div>",
     "",
@@ -309,10 +297,8 @@ Reporter <- function(
   
   if (isTRUE(render_html)) {
     if (!requireNamespace("rmarkdown", quietly = TRUE)) {
-      stop(
-        "Package 'rmarkdown' is required to render HTML. Install it via install.packages('rmarkdown').",
-        call. = FALSE
-      )
+      stop("Package 'rmarkdown' is required to render HTML. Install it via install.packages('rmarkdown').",
+           call. = FALSE)
     }
     
     html_out <- rmarkdown::render(

@@ -2,19 +2,41 @@
 % Please edit documentation in R/QualPlot.R
 \name{QualPlot}
 \alias{QualPlot}
-\title{Generate QC plots for a single file}
+\title{Generate and save QC plots for a single file}
 \usage{
-QualPlot(qc_obj, filename)
+QualPlot(
+  qc_obj,
+  filename,
+  out_dir = "plots",
+  width = 7,
+  height = 5,
+  dpi = 300,
+  overwrite = TRUE
+)
 }
 \arguments{
-\item{qc_obj}{An S4 LongReadQC object with \verb{@metrics} and \verb{@plots} slots.}
+\item{qc_obj}{A \code{LongReadQC} object with populated \verb{@metrics}.}
 
-\item{filename}{Length-1 character string; must be a name in \code{qc_obj@metrics}.}
+\item{filename}{Character(1). Must match a name in \code{names(qc_obj@metrics)}.}
+
+\item{out_dir}{Character(1). Directory where plot outputs are written.
+A per-file subdirectory is created under \code{out_dir} using \code{basename(filename)}
+(sanitized).}
+
+\item{width}{Numeric(1). Plot width in inches.}
+
+\item{height}{Numeric(1). Plot height in inches.}
+
+\item{dpi}{Integer(1). PNG resolution (DPI).}
+
+\item{overwrite}{Logical(1). If TRUE, overwrite existing plot files.}
 }
 \value{
-The updated \code{qc_obj} with plots stored in \code{qc_obj@plots[[filename]]}.
+Updated \code{qc_obj} with plot file paths stored in \code{qc_obj@plots[[filename]]}.
 }
 \description{
-Builds and stores plots for one \code{filename} found in \code{qc_obj@metrics}.
+Builds QC plots for one \code{filename} found in \code{qc_obj@metrics}, writes each plot
+to disk as a high-resolution PNG, and stores the resulting file paths in
+\code{qc_obj@plots[[filename]]}.
 }
 \keyword{internal}

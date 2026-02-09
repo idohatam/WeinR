@@ -301,3 +301,14 @@ hr.section-sep {
   font-size: 0.9rem;
   margin-top: 24px;
 }
+
+img {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* If you want plot grids a bit narrower on wide screens */
+.section-card img {
+  display: block;
+  margin: 0 auto;
+}
