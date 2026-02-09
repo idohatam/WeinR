@@ -26,7 +26,8 @@ Imports:
     scales,
     stats,
     utils,
-    methods
+    methods,
+    ShortRead
 Suggests: 
     knitr,
     rmarkdown,
