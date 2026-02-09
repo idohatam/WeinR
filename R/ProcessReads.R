@@ -97,7 +97,7 @@
 ProcessReads <- function(qc_obj,
                          filter = FALSE,
                          MinAvgQS = 20,
-                         MinLength = 100,
+                         MinLength = 200,
                          MaxNumberNs = 2,
                          AdapterSeq = NULL,
                          MaxMismatchEnd = 3,

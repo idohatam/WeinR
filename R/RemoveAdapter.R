@@ -260,7 +260,7 @@ RemoveAdapter <- function(qc_obj,
     base_name <- paste0(RemoveExt(OriginalFPath), "_", OutSuffix)
     out_paths <- WriteReadOutputs(
       reads = final_reads,
-      base_name = base_name,
+      BaseName = base_name,
       OutDir = OutDir,
       OutFileType = OutFileType
     )

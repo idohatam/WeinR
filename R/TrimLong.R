@@ -130,7 +130,7 @@ TrimLong <- function(qc_obj,
   
   out_paths <- WriteReadOutputs(
     reads = trimmed_reads,
-    base_name = paste0(base_name, "_", OutSuffix),
+    BaseName = paste0(base_name, "_", OutSuffix),
     OutDir = OutDir,
     OutFileType = OutFileType
   )

@@ -124,7 +124,7 @@ FilterLong <- function(qc_obj,
     base_name <- paste0(RemoveExt(OriginalFPath), "_", OutSuffix)
     out_paths <- WriteReadOutputs(
       reads = final_reads,
-      base_name = base_name,
+      BaseName = base_name,
       OutDir = OutDir,
       OutFileType = OutFileType
     )
@@ -147,7 +147,7 @@ FilterLong <- function(qc_obj,
     
     tmp_paths <- WriteReadOutputs(
       reads = filtered_reads,
-      base_name = tmp_base,
+      BaseName = tmp_base,
       OutDir = tmp_dir,
       OutFileType = "fastq",
       Verbose = FALSE
