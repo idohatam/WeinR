@@ -50,18 +50,6 @@
 #' discarded. If fragments are produced, corresponding original reads are removed from
 #' the end-trimmed set to avoid duplicates.
 #'
-#' @examples
-#' \dontrun{
-#' qc_obj2 <- RemoveAdapter(
-#'   qc_obj,
-#'   adapterSeq = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA",
-#'   OutDir = tempdir(),
-#'   OutFileType = "fastq",
-#'   verbose = TRUE,
-#'   WriteIntermediate = TRUE
-#' )
-#' }
-#'
 #' @keywords internal
 RemoveAdapter <- function(qc_obj,
                           adapterSeq,

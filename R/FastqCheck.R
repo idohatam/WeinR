@@ -25,19 +25,6 @@
 #' not conform to FASTQ conventions, an error is raised with an informative
 #' message.
 #'
-#' @examples
-#' \dontrun{
-#' # Valid minimal FASTQ
-#' fq <- tempfile(fileext = ".fastq")
-#' writeLines(c("@r1", "ACGT", "+", "IIII"), fq)
-#' FastqCheck(fq)
-#'
-#' # Malformed FASTQ (missing plus line)
-#' bad <- tempfile(fileext = ".fastq")
-#' writeLines(c("@r1", "ACGT", "IIII"), bad)
-#' FastqCheck(bad)
-#' }
-#'
 #' @keywords internal
 FastqCheck <- function(filePath, n_records = 100L) {
   

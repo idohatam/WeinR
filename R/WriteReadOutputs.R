@@ -21,24 +21,6 @@
 #' record formatting. BAM output is created by writing a temporary SAM file and
 #' converting it via \code{Rsamtools::asBam()}.
 #'
-#' @examples
-#' \dontrun{
-#' reads <- Biostrings::QualityScaledDNAStringSet(
-#'   Biostrings::DNAStringSet(c("ACGT", "AAAA")),
-#'   Biostrings::BStringSet(c("IIII", "####"))
-#' )
-#' names(reads) <- c("r1", "r2")
-#'
-#' out <- WriteReadOutputs(
-#'   reads,
-#'   base_name   = "toy",
-#'   OutDir      = tempdir(),
-#'   OutFileType = c("fasta", "fastq"),
-#'   Verbose     = TRUE
-#' )
-#' out
-#' }
-#'
 #' @keywords internal
 WriteReadOutputs <- function(reads,
                              base_name,
