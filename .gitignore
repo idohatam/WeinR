@@ -7,3 +7,11 @@ reports
 .css
 .rmd
 .bam
+
+.DS_Store
+.RDataTmp
+WeinR_Outputs/
+output/
+inst/.DS_Store
+
+.gitignore
