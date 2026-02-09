@@ -10,18 +10,19 @@ Authors@R: c(
   )
 Description: Quality control and processing tools for Oxford Nanopore
     long-read sequencing data.
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+License: MIT
 Encoding: UTF-8
 Depends: R (>= 4.4.0)
 Imports:
     Biostrings,
+    data.table,
     dplyr,
     IRanges,
     Rsamtools,
     tools,
     ggplot2,
     ggrastr,
+    matrixStats,
     methods,
     scales,
     stats,

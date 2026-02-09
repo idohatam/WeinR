@@ -10,8 +10,8 @@ TrimLong(
   End = NULL,
   FilePath = NULL,
   OutDir = ".",
-  OutFile = NULL,
-  OutFileType = c("fastq")
+  OutFileType = c("fastq"),
+  OutSuffix = "trimmed"
 )
 }
 \arguments{
@@ -25,38 +25,37 @@ exactly one file in \code{qc_obj@files} (the "original" file key for metadata).}
 (3') of each read. If \code{NULL}, no end trimming is applied.}
 
 \item{FilePath}{Character(1) or \code{NULL}. Optional file path to trim. If
-\code{NULL}, uses the first file in \code{qc_obj@files}. This is used to allow
-trimming of intermediate files while still recording results under the original
-input file.}
+\code{NULL}, uses the first file in \code{qc_obj@files}. This allows trimming of
+intermediate files while still recording results under the original input file.}
 
 \item{OutDir}{Character(1). Output directory. Created if it does not exist.}
-
-\item{OutFile}{Character(1) or \code{NULL}. Optional output filename stem. If
-provided, \code{RemoveExt(OutFile)} is used as the base name; otherwise the
-original input file stem is used.}
 
 \item{OutFileType}{Character vector specifying output format(s). Supported values
 are \code{"fastq"}, \code{"fasta"}, and \code{"bam"} (as implemented by
 \code{WriteReadOutputs()}). Multiple formats may be requested.}
+
+\item{OutSuffix}{Character(1). Suffix appended to the output basename when writing
+trimmed reads (e.g., \code{"trimmed"}).}
 }
 \value{
 The updated \code{qc_obj}. A trim summary is stored in
 \code{qc_obj@metadata[[basename(original_file)]]$trim_summary}.
 }
 \description{
-Internal helper that trims reads for a single input file using \code{Start} and
+Internal helper that trims reads for a single input file using \code{Start} and/or
 \code{End} offsets and writes trimmed reads to disk. A trim summary is stored in
-\code{qc_obj@metadata[[basename(original_file)]]}.
+\code{qc_obj@metadata[[basename(original_file)]]$trim_summary}.
 }
 \details{
-Trimming is performed using \code{IRanges::narrow()}. Reads that would become
-invalid (end < start) are dropped. If no reads can be trimmed under the provided
-\code{Start}/\code{End} values, the input \code{qc_obj} is returned unchanged.
-}
-\examples{
-\dontrun{
-qc_obj2 <- TrimLong(qc_obj, Start = 10, End = 5, OutDir = tempdir())
+Edge-case behavior:
+\itemize{
+\item Warns if trimming removes \code{>= 50\%} of reads.
+\item Warns if \code{0} reads remain after trimming; no files are written.
 }
 
+Trimming is performed using \code{IRanges::narrow()}. Reads that would become
+invalid (\code{end < start}) are dropped before trimming. If \code{0} reads remain,
+a warning is issued, the summary is recorded with \code{reads_after = 0L}, and no
+output files are written.
 }
 \keyword{internal}

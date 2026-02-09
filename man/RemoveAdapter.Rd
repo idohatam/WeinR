@@ -14,9 +14,10 @@ RemoveAdapter(
   FilePath = NULL,
   OutDir = ".",
   OutFileType = c("fastq"),
-  OutFile = NULL,
   verbose = TRUE,
-  WriteIntermediate = FALSE
+  WriteIntermediate = FALSE,
+  KeepIntermediates = FALSE,
+  OutSuffix = "adaptertrimmed"
 )
 }
 \arguments{
@@ -26,7 +27,7 @@ file in \code{@files}. This function operates on a single file at a time.}
 \item{adapterSeq}{Character(1). Adapter sequence (DNA alphabet) to search for.}
 
 \item{MaxMismatchEnd}{Integer(1). Maximum mismatches allowed when matching the
-adapter sequence.}
+adapter sequence during end-adapter detection.}
 
 \item{MinOverlapEnd}{Integer(1). Maximum distance from either end (5' or 3')
 within which an adapter hit is treated as an end adapter and trimmed.}
@@ -47,56 +48,41 @@ of intermediate files while still recording results under the original input fil
 are \code{"fastq"}, \code{"fasta"}, and \code{"bam"} (as implemented by
 \code{WriteReadOutputs()}). Multiple formats may be requested.}
 
-\item{OutFile}{Character(1) or \code{NULL}. Optional output filename stem used
-for naming outputs. If \code{NULL}, naming is based on the original input file.}
-
 \item{verbose}{Logical(1). If \code{TRUE}, prints progress messages.}
 
 \item{WriteIntermediate}{Logical(1). If \code{TRUE}, writes an intermediate FASTQ
-file and stores the path in \code{attr(qc_obj, "._tmp_fastq")} for chaining
-steps in downstream workflows.}
+file and stores the path in \code{attr(qc_obj, "._tmp_fastq")} for chaining.}
+
+\item{KeepIntermediates}{Logical(1). If \code{TRUE}, writes the processed reads to
+\code{OutDir} (in the formats requested by \code{OutFileType}) and records the
+written paths in the summary. If \code{FALSE}, no final outputs are written.}
+
+\item{OutSuffix}{Character(1). Suffix appended to the output basename when writing
+processed reads (e.g., \code{"adaptertrimmed"}).}
 }
 \value{
 The updated \code{qc_obj}. An adapter trimming summary is stored in
-\code{qc_obj@metadata[[basename(original_file)]]$adapter_summary}.
+\code{qc_obj@metadata[[basename(original_file)]]$adapter_summary}. If
+\code{WriteIntermediate = TRUE}, \code{attr(qc_obj, "._tmp_fastq")} contains the
+intermediate FASTQ path (or \code{NULL}).
 }
 \description{
 Internal helper that searches for an adapter sequence within reads from a
 single-file QC object, trims adapter occurrences near read ends, and optionally
 splits reads with internal adapter hits into fragments (chimeric read handling).
-Trimmed reads are written to disk and a summary is stored in
-\code{qc_obj@metadata[[basename(original_file)]]}.
+A summary is stored in \code{qc_obj@metadata[[basename(original_file)]]$adapter_summary}.
+Optionally, an intermediate FASTQ can be written for chaining and stored in
+\code{attr(qc_obj, "._tmp_fastq")}.
 }
 \details{
-Adapter detection uses \code{Biostrings::vmatchPattern()} with
-\code{max.mismatch = MaxMismatchEnd}. Adapter hits within \code{MinOverlapEnd}
-of the 5' or 3' ends are treated as end adapters and trimmed.
+Adapter detection uses \code{Biostrings::vmatchPattern()} (both orientations:
+adapter and reverse complement) with \code{max.mismatch = MaxMismatchEnd}.
+Adapter hits within \code{MinOverlapEnd} of the 5' or 3' ends are treated as end
+adapters and trimmed.
 
-Reads with two or more adapter hits may contain internal adapters. Internal hits
-that are at least \code{MinInternalDistance} from both ends are used to split a
-read into fragments (chimera handling). Fragments shorter than
-\code{MinFragmentLength} are discarded. If chimeric fragments are produced, the
-corresponding original reads are removed from the end-trimmed set to avoid
-duplicate representation.
-
-The summary is recorded under the original input file (the single file stored in
-\code{qc_obj@files[[1]]}), keyed by its basename.
-}
-\examples{
-\dontrun{
-qc_obj2 <- RemoveAdapter(
-  qc_obj,
-  adapterSeq = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA",
-  MaxMismatchEnd = 3,
-  MinOverlapEnd = 20,
-  MinInternalDistance = 100,
-  MinFragmentLength = 200,
-  OutDir = tempdir(),
-  OutFileType = "fastq",
-  verbose = TRUE,
-  WriteIntermediate = TRUE
-)
-}
-
+Reads with internal adapter hits at least \code{MinInternalDistance} from both ends
+can be split into fragments. Fragments shorter than \code{MinFragmentLength} are
+discarded. If fragments are produced, corresponding original reads are removed from
+the end-trimmed set to avoid duplicates.
 }
 \keyword{internal}

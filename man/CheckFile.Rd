@@ -25,23 +25,4 @@ and gzipped FASTQ (\code{.fastq.gz}, \code{.fq.gz}).
 This function is intended for internal use only and is not part of the
 public API. It errors on invalid paths or unsupported file extensions.
 }
-\examples{
-\dontrun{
-# FASTQ example
-fq <- tempfile(fileext = ".fastq")
-file.create(fq)
-WeinR:::CheckFile(fq)
-
-# gzipped FASTQ example
-fqgz <- tempfile(fileext = ".fastq.gz")
-file.create(fqgz)
-WeinR:::CheckFile(fqgz)
-
-# BAM example
-bam <- tempfile(fileext = ".bam")
-file.create(bam)
-WeinR:::CheckFile(bam)
-}
-
-}
 \keyword{internal}

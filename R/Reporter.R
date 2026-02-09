@@ -1,34 +1,3 @@
-#' Create an HTML QC report from a LongReadQC object
-#'
-#' Writes an R Markdown (`.Rmd`) file to `path` and (optionally) renders it to
-#' an HTML report using `rmarkdown::render()`. The report includes a DT summary
-#' table and plot sections assembled from `mfa` (a `LongReadQC` object).
-#'
-#' @param path Character. Output path for the report **without or with** the `.Rmd`
-#'   extension. If no extension is provided, `.Rmd` is appended. Directories are
-#'   created if needed.
-#' @param title Character. Report title shown in the rendered HTML.
-#' @param author Character. Report author shown in the rendered HTML.
-#' @param date Character. Report date shown in the rendered HTML.
-#' @param toc Logical. Whether to include a table of contents.
-#' @param code_folding Character. One of `"none"`, `"show"`, `"hide"`. Controls
-#'   code folding in the HTML output.
-#' @param theme Character. R Markdown Bootstrap theme name (e.g. `"cosmo"`).
-#' @param highlight Character. Syntax highlighting theme (e.g. `"tango"`).
-#' @param overwrite Logical. If `FALSE` and the output `.Rmd` exists, an error is
-#'   thrown. If `TRUE`, existing files are replaced.
-#' @param render_html Logical. If `TRUE`, renders the `.Rmd` to HTML via
-#'   `rmarkdown::render()`.
-#' @param open_browser Logical. If `TRUE` and `render_html=TRUE`, opens the
-#'   rendered HTML in a browser.
-#' @param mfa A `LongReadQC` object (required). Used by the report as
-#'   `params$mfa`.
-#' @param metadata Logical. If `TRUE`, include a processing metadata table
-#'   (filter/adapter/trim reads before/after + output filenames) if present.
-#'
-#' @return If `render_html=TRUE`, an (invisible) list with elements `rmd` and
-#'   `html` giving normalized paths to the generated files. If `render_html=FALSE`,
-#'   an (invisible) list with element `rmd`.
 Reporter <- function(
     path          = "report.Rmd",
     title         = "My Report",
@@ -67,8 +36,23 @@ Reporter <- function(
   }
   
   # DEV MODE css (absolute path is fine)
-  pkg_css <- normalizePath(file.path("inst", "styles", "colorblind.css"),
-                           winslash = "/", mustWork = TRUE)
+  pkg_css <- normalizePath(
+    file.path("inst", "styles", "colorblind.css"),
+    winslash = "/",
+    mustWork = TRUE
+  )
+  
+  # Legend PNGs (absolute paths)
+  quality_legend_png <- normalizePath(
+    file.path("inst", "images", "quality_legend.png"),
+    winslash = "/",
+    mustWork = TRUE
+  )
+  per_pos_q_legend_png <- normalizePath(
+    file.path("inst", "images", "per_pos_q_legend.png"),
+    winslash = "/",
+    mustWork = TRUE
+  )
   
   yaml <- c(
     "---",
@@ -202,19 +186,11 @@ Reporter <- function(
       "    as.integer(s[['reads_after']])",
       "  }, integer(1))",
       "",
-      "  out_files <- vapply(files, function(f) {",
-      "    s <- md[[f]][[step_name]]",
-      "    op <- if (!is.null(s)) s[['output_paths']] else NULL",
-      "    if (is.null(op) || length(op) == 0 || all(is.na(op))) return(NA_character_)",
-      "    paste(basename(op), collapse = ', ')",
-      "  }, character(1))",
-      "",
       "  data.frame(",
       "    Filename = files,",
       "    Step = pretty_step,",
       "    `Reads Before` = reads_before,",
       "    `Reads After` = reads_after,",
-      "    `Output Filenames` = out_files,",
       "    check.names = FALSE,",
       "    stringsAsFactors = FALSE",
       "  )",
@@ -225,10 +201,15 @@ Reporter <- function(
       "  tbl_adapter <- get_step_tbl(md, 'adapter_summary', 'Adapter')",
       "  tbl_trim    <- get_step_tbl(md, 'trim_summary',    'Trim')",
       "  meta_tbl <- do.call(rbind, Filter(Negate(is.null), list(tbl_filter, tbl_adapter, tbl_trim)))",
-      "  meta_tbl <- meta_tbl[, c('Filename','Step','Reads Before','Reads After','Output Filenames'), drop = FALSE]",
+      "  meta_tbl <- meta_tbl[, c('Filename','Step','Reads Before','Reads After'), drop = FALSE]",
       "  DT::datatable(",
       "    meta_tbl,",
-      "    options = list(scrollX = TRUE, pageLength = 25, autoWidth = TRUE),",
+      "    options = list(",
+      "      scrollX = TRUE,",
+      "      pageLength = 25,",
+      "      autoWidth = TRUE,",
+      "      order = list(list(0, 'asc'))",
+      "    ),",
       "    rownames = FALSE,",
       "    caption = 'Processing metadata',",
       "    class = 'stripe hover'",
@@ -255,6 +236,9 @@ Reporter <- function(
     "```",
     "",
     "### **Average Q-score Distribution**",
+    "```{r, fig.align='left', out.width='20%'}",
+    sprintf("knitr::include_graphics('%s')", quality_legend_png),
+    "```",
     "```{r, fig.align='left', out.width='70%'}",
     "qhist <- Filter(Negate(is.null), lapply(qc@plots, function(ps) if (is.list(ps)) ps[['quality_hist']] else NULL))",
     "if (length(qhist)) render_grid_png(qhist, max_cols = 3, height_in = 3.5) else cat('No Q-score histograms available')",
@@ -273,6 +257,9 @@ Reporter <- function(
     "```",
     "",
     "### **Per-position quality (binned at 2000 bp)**",
+    "```{r, fig.align='left', out.width='20%'}",
+    sprintf("knitr::include_graphics('%s')", per_pos_q_legend_png),
+    "```",
     "```{r, fig.align='left', out.width='70%'}",
     "ppq <- Filter(Negate(is.null), lapply(qc@plots, function(ps) if (is.list(ps)) ps[['per_pos_q']] else NULL))",
     "if (length(ppq)) render_grid_png(ppq, max_cols = 3, height_in = 3.5) else cat('No per-position quality plots available')",

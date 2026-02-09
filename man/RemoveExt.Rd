@@ -25,13 +25,4 @@ and their gzipped forms (e.g., \code{.fastq.gz}).
 
 This function is intended for internal use and is not part of the public API.
 }
-\examples{
-\dontrun{
-WeinR:::RemoveExt("reads.fastq")
-WeinR:::RemoveExt("reads.fastq.gz")
-WeinR:::RemoveExt("/path/to/reads.FA")
-WeinR:::RemoveExt(c("a.fq", "b.bam.gz"))
-}
-
-}
 \keyword{internal}

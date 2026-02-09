@@ -41,21 +41,4 @@ and aligned in length, BAM \code{qname} values are used as read names.
 
 This function is intended for internal use and is not part of the public API.
 }
-\examples{
-\dontrun{
-# FASTQ example: create a tiny, valid FASTQ file (1 read)
-fq <- tempfile(fileext = ".fastq")
-writeLines(c("@r1", "ACGT", "+", "IIII"), fq)
-x <- WeinR:::ImportFile(fq)
-length(x)
-
-# MinNumReads example: warn + return NULL if threshold not met
-y <- WeinR:::ImportFile(fq, MinNumReads = 2L)
-is.null(y)
-
-# MinNumReads validation example: errors on invalid values
-WeinR:::ImportFile(fq, MinNumReads = 0)
-}
-
-}
 \keyword{internal}

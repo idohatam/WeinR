@@ -35,18 +35,4 @@ number of lines read is not a multiple of four, or if header or plus lines do
 not conform to FASTQ conventions, an error is raised with an informative
 message.
 }
-\examples{
-\dontrun{
-# Valid minimal FASTQ
-fq <- tempfile(fileext = ".fastq")
-writeLines(c("@r1", "ACGT", "+", "IIII"), fq)
-FastqCheck(fq)
-
-# Malformed FASTQ (missing plus line)
-bad <- tempfile(fileext = ".fastq")
-writeLines(c("@r1", "ACGT", "IIII"), bad)
-FastqCheck(bad)
-}
-
-}
 \keyword{internal}

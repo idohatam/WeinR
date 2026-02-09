@@ -6,17 +6,18 @@
 \usage{
 WriteReadOutputs(
   reads,
-  base_name,
+  BaseName,
   OutDir = ".",
   OutFileType = c("fastq"),
   Verbose = TRUE
 )
 }
 \arguments{
-\item{reads}{A \code{Biostrings::QualityScaledDNAStringSet} (or compatible
-\code{XStringSet}) containing reads to write.}
+\item{reads}{An \code{XStringSet}-compatible object containing reads to write.
+For \code{"fastq"} and \code{"bam"} outputs, \code{reads} must be a
+\code{Biostrings::QualityScaledDNAStringSet}.}
 
-\item{base_name}{Character(1). Output filename stem (without extension).}
+\item{BaseName}{Character(1). Output filename stem (without extension).}
 
 \item{OutDir}{Character(1). Output directory. Created if it does not exist.}
 
@@ -28,33 +29,15 @@ requested.}
 }
 \value{
 A character vector of output file paths (one per requested format).
+Returns \code{character(0)} if \code{reads} contains \code{0} sequences.
 }
 \description{
 Internal helper that writes a read set to disk in one or more formats.
 Supported output formats are FASTQ, FASTA, and BAM.
 }
 \details{
-FASTA/FASTQ outputs are written using \code{Biostrings::writeXStringSet()}.
-BAM output is created by writing a temporary SAM file and converting it via
-\code{Rsamtools::asBam()}.
-}
-\examples{
-\dontrun{
-reads <- Biostrings::QualityScaledDNAStringSet(
-  Biostrings::DNAStringSet(c("ACGT", "AAAA")),
-  Biostrings::BStringSet(c("IIII", "####"))
-)
-names(reads) <- c("r1", "r2")
-
-out <- WriteReadOutputs(
-  reads,
-  base_name   = "toy",
-  OutDir      = tempdir(),
-  OutFileType = c("fasta", "fastq"),
-  Verbose     = TRUE
-)
-out
-}
-
+FASTA is written with \code{Biostrings::writeXStringSet()}. FASTQ is written with
+\code{ShortRead::writeFastq()} for efficient streaming. BAM output is created by
+writing a temporary SAM file and converting it via \code{Rsamtools::asBam()}.
 }
 \keyword{internal}

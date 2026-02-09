@@ -8,7 +8,7 @@ ProcessReads(
   qc_obj,
   filter = FALSE,
   MinAvgQS = 20,
-  MinLength = 100,
+  MinLength = 200,
   MaxNumberNs = 2,
   AdapterSeq = NULL,
   MaxMismatchEnd = 3,
@@ -22,7 +22,9 @@ ProcessReads(
   title = outpath,
   render_report = TRUE,
   force = FALSE,
-  verbose = TRUE
+  verbose = TRUE,
+  KeepIntermediates = FALSE,
+  FinalSuffix = "processed"
 )
 }
 \arguments{
@@ -32,50 +34,71 @@ with corresponding metrics already computed in \code{qc_obj@metrics} and
 
 \item{filter}{Logical(1). If \code{TRUE}, run \code{FilterLong()} prior to other steps.}
 
-\item{MinAvgQS}{Numeric(1). Minimum mean per-read quality score to keep a read (passed to \code{FilterLong()}).}
+\item{MinAvgQS}{Numeric(1). Minimum mean per-read quality score to keep a read
+(passed to \code{FilterLong()}).}
 
 \item{MinLength}{Integer(1). Minimum read length to keep a read (passed to \code{FilterLong()}).}
 
-\item{MaxNumberNs}{Integer(1). Maximum number of \code{N} bases allowed per read (passed to \code{FilterLong()}).}
+\item{MaxNumberNs}{Integer(1). Maximum number of \code{N} bases allowed per read
+(passed to \code{FilterLong()}).}
 
-\item{AdapterSeq}{Character(1) or \code{NULL}. If not \code{NULL}, run \code{RemoveAdapter()} using this adapter sequence.}
+\item{AdapterSeq}{Character(1) or \code{NULL}. If not \code{NULL}, run \code{RemoveAdapter()} using
+this adapter sequence.}
 
-\item{MaxMismatchEnd}{Integer(1). Maximum mismatches allowed in end-adapter matches (passed to \code{RemoveAdapter()}).}
+\item{MaxMismatchEnd}{Integer(1). Maximum mismatches allowed in end-adapter matches
+(passed to \code{RemoveAdapter()}).}
 
-\item{MinOverlapEnd}{Integer(1). Minimum overlap length for end-adapter matches (passed to \code{RemoveAdapter()}).}
+\item{MinOverlapEnd}{Integer(1). Minimum overlap length for end-adapter matches
+(passed to \code{RemoveAdapter()}).}
 
-\item{MinInternalDistance}{Integer(1). Minimum distance between internal adapter sites (passed to \code{RemoveAdapter()}).}
+\item{MinInternalDistance}{Integer(1). Minimum distance between internal adapter sites
+(passed to \code{RemoveAdapter()}).}
 
-\item{MinFragmentLength}{Integer(1). Minimum fragment length to keep after internal adapter trimming (passed to \code{RemoveAdapter()}).}
+\item{MinFragmentLength}{Integer(1). Minimum fragment length to keep after internal
+adapter trimming (passed to \code{RemoveAdapter()}).}
 
-\item{Start}{Integer(1) or \code{NULL}. If not \code{NULL}, trim this many bases from the 5' end (passed to \code{TrimLong()}).}
+\item{Start}{Integer(1) or \code{NULL}. If not \code{NULL}, trim this many bases from the 5' end
+(passed to \code{TrimLong()}).}
 
-\item{End}{Integer(1) or \code{NULL}. If not \code{NULL}, trim this many bases from the 3' end (passed to \code{TrimLong()}).}
+\item{End}{Integer(1) or \code{NULL}. If not \code{NULL}, trim this many bases from the 3' end
+(passed to \code{TrimLong()}).}
 
-\item{OutFileType}{Character(1). Output file type for written reads (currently \code{"fastq"}).}
+\item{OutFileType}{Character vector specifying output format(s) to write when outputs
+are written (e.g., \code{"fastq"}). Supported values are \code{"fastq"},
+\code{"bam"}, and \code{"fasta"} (as implemented by \code{WriteReadOutputs()}).}
 
-\item{outpath}{Character(1). Basename for the report output (without extension). The report is written to
-\code{file.path(getwd(), "reports", outpath)}, producing \code{.Rmd} and \code{.html}.}
+\item{outpath}{Character(1). Basename for the report output (without extension).
+Reports are written to \code{file.path(getwd(), "WeinR_Outputs", "Reports", outpath)},
+producing \code{.Rmd} and \code{.html}.}
 
 \item{title}{Character(1). Title used in the generated report. Defaults to \code{outpath}.}
 
-\item{render_report}{Logical(1). If \code{TRUE}, generate an HTML report with \code{CreateReport()}.}
+\item{render_report}{Logical(1). If \code{TRUE}, generate an HTML report with \code{Reporter()}.}
 
-\item{force}{Logical(1). If \code{FALSE} and an existing report \code{.Rmd} or \code{.html} already exists for \code{outpath},
-the function errors. If \code{TRUE}, allows overwrite.}
+\item{force}{Logical(1). If \code{FALSE} and an existing report \code{.Rmd} or \code{.html} already exists
+for \code{outpath}, the function errors. If \code{TRUE}, allows overwrite.}
 
 \item{verbose}{Logical(1). If \code{TRUE}, print progress messages for each file and step.}
+
+\item{KeepIntermediates}{Logical(1). If \code{TRUE}, keep intermediate FASTQ files produced
+between steps (when step functions are called with \code{WriteIntermediate = TRUE}).
+If \code{FALSE}, intermediates are cleaned up after each file.}
+
+\item{FinalSuffix}{Character(1). Suffix used for the final output file produced by the
+last step that runs (e.g., \code{"processed"}).}
 }
 \value{
 The updated \code{LongReadQC} object with per-file metadata updated in \code{qc_obj@metadata}.
-Processed reads are written to \code{OutDir} by the underlying step functions.
+Processed reads are written under \code{file.path(getwd(), "WeinR_Outputs", "Processed_Files")}
+by the underlying step functions.
 }
 \description{
-Runs a single end-to-end workflow over all files in a \code{LongReadQC} object. For each
-file, this function can (optionally) apply read filtering (\code{FilterLong()}), adapter
-trimming (\code{RemoveAdapter()}), and 5'/3' end trimming (\code{TrimLong()}), chaining steps
-via temporary FASTQ files. After processing, it can generate an HTML report via
-\code{CreateReport()}.
+Runs an end-to-end processing workflow over all files in a \code{LongReadQC} object.
+For each input file, the workflow can (optionally) apply read filtering
+(\code{FilterLong()}), adapter trimming (\code{RemoveAdapter()}), and 5'/3' end trimming
+(\code{TrimLong()}), chaining steps via temporary FASTQ files when intermediate writing
+is enabled. After processing all files, an HTML report can be generated via
+\code{Reporter()}.
 }
 \details{
 \strong{Workflow order (per file):}
@@ -85,15 +108,12 @@ via temporary FASTQ files. After processing, it can generate an HTML report via
 \item Optional 5'/3' trimming with \code{TrimLong()} if \code{Start} and/or \code{End} are provided.
 }
 
-Steps are chained using temporary FASTQ files stored as \code{attr(single_qc, "._tmp_fastq")}
-produced by \code{FilterLong()} / \code{RemoveAdapter()} when \code{WriteIntermediate = TRUE}. Temporary
-files are cleaned up automatically after each file.
+Steps may be chained using temporary FASTQ files stored as
+\code{attr(single_qc, "._tmp_fastq")} produced by \code{FilterLong()} / \code{RemoveAdapter()}.
+Temporary files are cleaned up automatically after each file
 
-If filtering is enabled and no reads pass the filters, remaining steps for that file are
-skipped and the workflow continues to the next input file.
-
-Reports are written to a \verb{reports/} directory under the current working directory.
-The report path is checked before rendering; set \code{force = TRUE} to overwrite.
+If a step results in \code{reads_after == 0L} (as recorded in the step summary in metadata),
+remaining steps for that file are skipped and the workflow continues to the next input file.
 }
 \examples{
 \dontrun{
@@ -122,5 +142,5 @@ qc3 <- ProcessReads(qc_obj,
 
 }
 \seealso{
-\code{\link[=FilterLong]{FilterLong()}}, \code{\link[=RemoveAdapter]{RemoveAdapter()}}, \code{\link[=TrimLong]{TrimLong()}}, \code{\link[=CreateReport]{CreateReport()}}
+\code{\link[=FilterLong]{FilterLong()}}, \code{\link[=RemoveAdapter]{RemoveAdapter()}}, \code{\link[=TrimLong]{TrimLong()}}, \code{\link[testthat:Reporter]{testthat::Reporter()}}
 }
