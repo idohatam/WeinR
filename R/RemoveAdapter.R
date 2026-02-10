@@ -65,7 +65,7 @@ RemoveAdapter <- function(qc_obj,
                           KeepIntermediates = FALSE,
                           OutSuffix = "adaptertrimmed") {
   
-  # ---- checks ----
+  # checks
   if (length(qc_obj@files) != 1L)
     stop("RemoveAdapter() expects a QC object with exactly one file.")
   if (!is.character(adapterSeq) || length(adapterSeq) != 1L || is.na(adapterSeq) || !nzchar(adapterSeq))
@@ -84,12 +84,11 @@ RemoveAdapter <- function(qc_obj,
   if (!dir.exists(OutDir)) dir.create(OutDir, recursive = TRUE, showWarnings = FALSE)
   attr(qc_obj, "._tmp_fastq") <- NULL
   
-  # ---- choose file (supports chaining) ----
+  # choose file (supports chaining)
   fpath <- if (!is.null(FilePath)) FilePath else qc_obj@files[[1]]
   OriginalFPath <- qc_obj@files[[1]]
   key <- basename(OriginalFPath)
   fname <- basename(fpath)
-  if (isTRUE(verbose)) message("Adapter trimming: ", key)
   
   reads <- ImportFile(fpath)
   if (!inherits(reads, "QualityScaledDNAStringSet"))
@@ -106,14 +105,14 @@ RemoveAdapter <- function(qc_obj,
   
   widths <- Biostrings::width(reads)
   
-  # ---- vectorized matching (both orientations) ----
+  # vectorized matching (both orientations)
   adapter <- Biostrings::DNAString(adapterSeq)
   adapter_rc <- Biostrings::reverseComplement(adapter)
   
   m_fwd <- Biostrings::vmatchPattern(adapter,    reads, max.mismatch = MaxMismatchEnd)
   m_rev <- Biostrings::vmatchPattern(adapter_rc, reads, max.mismatch = MaxMismatchEnd)
   
-  # helper: get first start and last end quickly per read (NA if none)
+  # get first start and last end quickly per read (NA if none)
   first_start <- integer(n_reads); first_start[] <- NA_integer_
   first_end   <- integer(n_reads); first_end[]   <- NA_integer_
   last_start  <- integer(n_reads); last_start[]  <- NA_integer_
@@ -135,7 +134,7 @@ RemoveAdapter <- function(qc_obj,
     last_end[i]    <- IRanges::end(h)[length(h)]
   }
   
-  # ---- vectorized END trimming ----
+  # vectorized END trimming
   trim_start <- rep.int(1L, n_reads)
   trim_end   <- widths
   
@@ -162,7 +161,7 @@ RemoveAdapter <- function(qc_obj,
   # Enforce min length after end trim
   endtrimmed <- endtrimmed[Biostrings::width(endtrimmed) >= MinFragmentLength]
   
-  # ---- internal splitting: loop only over reads with >=2 hits ----
+  # internal splitting: loop only over reads with >=2 hits
   # We do strict internal search (exact) like your old code, but only for candidates.
   chimeric_frags <- reads[0]   # safe empty
   
@@ -249,7 +248,7 @@ RemoveAdapter <- function(qc_obj,
   }
   
   if (drop_frac >= 0.50) {
-    warning("RemoveAdapter(): trimming removed ",
+    warning("RemoveAdapter(): Adapter trimming removed ",
             round(drop_frac * 100, 1), "% of reads for: ", key,
             " (", n_after, "/", n_reads, " kept).")
   }
@@ -286,3 +285,4 @@ RemoveAdapter <- function(qc_obj,
   attr(qc_obj, "._tmp_fastq") <- tmp_fastq
   qc_obj
 }
+

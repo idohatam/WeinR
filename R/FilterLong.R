@@ -71,7 +71,7 @@ FilterLong <- function(qc_obj,
     stop("ImportFile() must return a QualityScaledDNAStringSet object.")
   }
   
-  ## ---- consistency checks (invalid state -> error) ----
+  ## consistency checks (invalid state: error)
   n_reads <- length(reads)
   
   if (length(lengths) != n_reads ||
@@ -95,7 +95,7 @@ FilterLong <- function(qc_obj,
   n_keep <- sum(keep)
   drop_frac <- (n_reads - n_keep) / n_reads
   
-  ## ---- edge-case warnings ----
+  ## edge-case warnings
   if (n_keep == 0L) {
     warning("FilterLong(): no reads passed filters for: ", fname)
     
@@ -121,9 +121,9 @@ FilterLong <- function(qc_obj,
   
   out_paths <- character(0)
   if (isTRUE(KeepIntermediates)) {
-    base_name <- paste0(RemoveExt(OriginalFPath), "_", OutSuffix)
+    base_name <- paste0(RemoveExt(fpath), "_", OutSuffix)
     out_paths <- WriteReadOutputs(
-      reads = final_reads,
+      reads = filtered_reads,
       BaseName = base_name,
       OutDir = OutDir,
       OutFileType = OutFileType

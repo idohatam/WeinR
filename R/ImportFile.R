@@ -65,7 +65,7 @@ ImportFile <- function(filePath,
     bam <- tryCatch(
       Rsamtools::scanBam(bf)[[1]],
       error = function(e) {
-        stop("BAM read failed (corrupted/invalid): ", conditionMessage(e), call. = FALSE)
+        stop(conditionMessage(e), call. = FALSE)
       }
     )
     
