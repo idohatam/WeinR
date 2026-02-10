@@ -11,6 +11,9 @@
 #' }
 #'
 #' @param files Character vector of input file paths.
+#' @param MinNumReads Integer(1). Minimum number of reads required to keep the file.
+#'  Must be a single positive integer (>= 1). If fewer reads are present, the
+#'  function warns and returns \code{NULL}.
 #' @param report_name Character. Base filename (without extension) for the report.
 #' @param render_report Logical. If \code{TRUE}, generate the HTML report.
 #' @param force Logical. If \code{TRUE}, overwrite existing report files.
@@ -38,6 +41,7 @@
 #' @export
 CreateReport <- function(
     files,
+    MinNumReads = 1L,
     report_name,
     render_report = TRUE,
     force = FALSE
@@ -50,7 +54,6 @@ CreateReport <- function(
   
   timestamp <- format(Sys.time(), "%Y-%m-%d_%H%M%S")
   base_dir <- file.path(WeinRdir, paste0("run_", timestamp))
-  
   dir.create(base_dir, recursive = TRUE, showWarnings = FALSE)
   
   metrics_dir <- file.path(base_dir, "metrics")
@@ -59,44 +62,73 @@ CreateReport <- function(
   plots_dir <- file.path(base_dir, "plots")
   dir.create(plots_dir, recursive = TRUE, showWarnings = FALSE)
   
+  
   for (file in qc_obj@files) {
-    qsds  <- ImportFile(file)
+    
     fname <- basename(file)
-    qc_obj <- QualMat(qc_obj, qsds, fname)
-    qc_obj <- QualPlot(qc_obj, filename = fname, out_dir = plots_dir, dpi = 300, overwrite = force)
-    file_metrics_dir <- file.path(metrics_dir, fname)
     
-    dir.create(file_metrics_dir, recursive = TRUE, showWarnings = FALSE)
+    qsds <- tryCatch(
+      ImportFile(file, MinNumReads),
+      error = function(e) {
+        message("Failed [", fname, "] - ", conditionMessage(e))
+        NULL
+      }
+    )
     
-    metrics_list <- qc_obj@metrics[[fname]]
+    # skip file if ImportFile() returned NULL (too few reads or import failed)
+    if (is.null(qsds)) next
     
-    for (metric_name in names(metrics_list)) {
-      out_csv <- file.path(file_metrics_dir, paste0(metric_name, ".csv"))
-      
-      if (!force && file.exists(out_csv)) {
-        stop(
-          "Metric CSV already exists at:\n",
-          out_csv, "\n",
-          "Use force = TRUE to overwrite.",
-          call. = FALSE
+    ok <- tryCatch(
+      {
+        qc_obj <- QualMat(qc_obj, qsds, fname)
+        
+        qc_obj <- QualPlot(
+          qc_obj,
+          filename  = fname,
+          out_dir   = plots_dir,
+          dpi       = 300,
+          overwrite = force
         )
+        
+        file_metrics_dir <- file.path(metrics_dir, fname)
+        dir.create(file_metrics_dir, recursive = TRUE, showWarnings = FALSE)
+        
+        metrics_list <- qc_obj@metrics[[fname]]
+        for (metric_name in names(metrics_list)) {
+          out_csv <- file.path(file_metrics_dir, paste0(metric_name, ".csv"))
+          if (!force && file.exists(out_csv)) {
+            stop(
+              "Metric CSV already exists at:\n",
+              out_csv, "\n",
+              "Use force = TRUE to overwrite.",
+              call. = FALSE
+            )
+          }
+          
+          metric <- metrics_list[[metric_name]]
+          
+          # normalize to data.frame for write.csv
+          if (is.data.frame(metric)) {
+            df <- metric
+          } else if (is.matrix(metric)) {
+            df <- as.data.frame(metric)
+          } else if (is.list(metric)) {
+            df <- data.frame(value = unlist(metric))
+          } else {
+            df <- data.frame(value = metric)
+          }
+          
+          utils::write.csv(df, file = out_csv, row.names = FALSE)
+        }
+        
+        TRUE
+      },
+      error = function(e) {
+        message("Failed [", fname, "] - ", conditionMessage(e))
+        FALSE
       }
-      
-      metric <- metrics_list[[metric_name]]
-      
-      # normalize to data.frame for write.csv
-      if (is.data.frame(metric)) {
-        df <- metric
-      } else if (is.matrix(metric)) {
-        df <- as.data.frame(metric)
-      } else if (is.list(metric)) {
-        df <- data.frame(value = unlist(metric))
-      } else {
-        df <- data.frame(value = metric)
-      }
-      
-      utils::write.csv(df, file = out_csv, row.names = FALSE)
-    }
+    )
+    
   }
   
   sm <- qc_obj@summary_metrics
