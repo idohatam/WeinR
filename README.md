@@ -14,13 +14,24 @@ https://forms.office.com/r/DZ9Nkrjspq
 ---
 ## Quick Start: 
 
-### 1. Load the package
+### 1. Install and load the package
 
-If you are developing locally:
-
+We will need to use dev tools. If your machine doesn't have it installed, install as shown below: 
 ```r
 install.packages("devtools")
 
 devtools::install_github("idohatam/WeinR", ref = "dev")
 library(WeinR)
+```
 
+### Supported Input Files: 
+
+WeinR accepts long-read sequencing files in the following formats:
+- FASTQ (.fastq)
+- Compressed FASTQ (.fastq.gz)
+- BAM (.bam)
+  *(BAM files must contain base quality scores in the QUAL field)*
+
+### 2. Running QC with CreateReport()
+
+This function runs QC on one or more sequencing files and optionally generates an HTML report.
