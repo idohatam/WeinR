@@ -117,6 +117,9 @@ ProcessReads <- function(qc_obj,
   
   message("Starting processing workflow for ", length(qc_obj@files), " file(s)...")
   
+  timestamp <- format(Sys.time(), "%Y-%m-%d_%H%M%S")
+  FinalSuffix_ts <- paste0(FinalSuffix, "_", timestamp)
+  
   base_dir <- file.path(getwd(), "WeinR_Outputs")
   dir.create(base_dir, recursive = TRUE, showWarnings = FALSE)
   
@@ -166,7 +169,7 @@ ProcessReads <- function(qc_obj,
           OutDir = processed_dir,
           WriteIntermediate = TRUE,
           KeepIntermediates = KeepIntermediates || is_final,
-          OutSuffix = if (is_final) FinalSuffix else "filtered"
+          OutSuffix = if (is_final) FinalSuffix_ts else paste0("filtered_", timestamp)
         )
         
         filt_sum <- single_qc@metadata[[key]]$filter_summary
@@ -207,7 +210,7 @@ ProcessReads <- function(qc_obj,
           verbose = verbose,
           WriteIntermediate = TRUE,
           KeepIntermediates = KeepIntermediates || is_final,
-          OutSuffix = if (is_final) FinalSuffix else "adaptertrimmed"
+          OutSuffix = if (is_final) FinalSuffix_ts else paste0("adaptertrimmed_", timestamp)
         )
         
         adap_sum <- single_qc@metadata[[key]]$adapter_summary
@@ -236,7 +239,7 @@ ProcessReads <- function(qc_obj,
           FilePath = current_input,
           OutDir = processed_dir,
           OutFileType = OutFileType,
-          OutSuffix = FinalSuffix
+          OutSuffix = FinalSuffix_ts
         )
         
         trim_sum <- single_qc@metadata[[key]]$trim_summary
