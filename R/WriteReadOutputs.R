@@ -110,7 +110,7 @@ WriteReadOutputs <- function(reads,
         "@SQ\tSN:*\tLN:0"
       ), con = temp_sam)
       
-      write.table(
+      utils::write.table(
         bam_df, file = temp_sam, sep = "\t", quote = FALSE,
         row.names = FALSE, col.names = FALSE, append = TRUE
       )
