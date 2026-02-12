@@ -25,7 +25,7 @@ We will need to use dev tools. If your machine doesn't have it installed, instal
 ```r
 install.packages("devtools")
 
-devtools::install_github("idohatam/WeinR", ref = "dev")
+devtools::install_github("idohatam/WeinR", ref = "main")
 library(WeinR)
 ```
 
@@ -120,19 +120,25 @@ Within your working directory, you will see something similar to:
 ```r
 WeinR_Outputs/run_YYYY-MM-DD_HHMMSS/
 ├── metrics/
-│   ├── sample1_metrics.csv
-│   └── sample2_metrics.csv
+|    └── sample_1.fastq
+│        ├── meanprQscore.csv
+│        ├── Ncount.csv
+│        ├── ...
+│   └── summary metrics.csv
+│   └── additonal sample files...
 ├── plots/
-│   ├── sample1_length_hist.png (300 DPI)
-│   ├── sample1_quality_box.png
-│   └── ...
+|    └── sample_1
+│       ├── length_hist.png (300 DPI)
+│       ├── gc_hist.png
+│   └──  additonal sample files...
 ├── reports/
 │   └── weinr_qc_report.html
+│   └── weinr_qc_report.rmd
 ├── processed/  (if ProcessReads run)
-│   ├── sample1_filtered.fastq
+│   ├── sample1_processed_date_time.fastq
 │   └── ...
 └── objects/
-    └── weinr_qc_object.rds
+    └── qc.rds
 ```
 
 ## Known limitations (Beta — please read!)
