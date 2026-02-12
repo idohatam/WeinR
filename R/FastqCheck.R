@@ -30,7 +30,7 @@ FastqCheck <- function(filePath, n_records = 100L) {
   
   if (is.null(n_records) || !is.numeric(n_records) || length(n_records) != 1L ||
       is.na(n_records) || n_records < 1 || n_records %% 1 != 0) {
-    stop("n_records must be a single positive integer (>= 1).")
+    stop("n_records must be a single positive integer (>= 1).", call. = FALSE)
   }
   n_records <- as.integer(n_records)
   
@@ -54,7 +54,7 @@ FastqCheck <- function(filePath, n_records = 100L) {
   
   # Must end on record boundary
   if ((length(x) %% 4L) != 0L) {
-    stop("FASTQ appears malformed: incomplete record (lines not multiple of 4).")
+    stop("FASTQ appears malformed: incomplete record (lines not multiple of 4).", call. = FALSE)
   }
   
   # Header and plus-line checks
@@ -62,10 +62,10 @@ FastqCheck <- function(filePath, n_records = 100L) {
   p <- x[seq(3L, length(x), by = 4L)]
   
   if (any(!startsWith(h, "@"))) {
-    stop("FASTQ appears malformed: header line(s) not starting with '@'.")
+    stop("FASTQ appears malformed: header line(s) not starting with '@'.", call. = FALSE)
   }
   if (any(!startsWith(p, "+"))) {
-    stop("FASTQ appears malformed: plus line(s) not starting with '+'.")
+    stop("FASTQ appears malformed: plus line(s) not starting with '+'.", call. = FALSE)
   }
   
   invisible(TRUE)

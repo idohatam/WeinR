@@ -21,15 +21,15 @@ CheckFile <- function(filePath)
 {
   
   # check if file path is valid, if not stop with an error message
-  if (is.null(filePath)) stop("File path is NULL.")
-  if (!is.character(filePath)) stop("File path must be a character string.")
-  if (length(filePath) != 1L) stop("File path must be a single path (length 1).")
-  if (is.na(filePath)) stop("File path is NA.")
-  if (!nzchar(trimws(filePath))) stop("File path is empty.")
+  if (is.null(filePath)) stop("File path is NULL.", call. = FALSE)
+  if (!is.character(filePath)) stop("File path must be a character string.", call. = FALSE)
+  if (length(filePath) != 1L) stop("File path must be a single path (length 1).", call. = FALSE)
+  if (is.na(filePath)) stop("File path is NA.", call. = FALSE)
+  if (!nzchar(trimws(filePath))) stop("File path is empty.", call. = FALSE)
   
   # check if file exists, if not stop with an error message
-  if (!file.exists(filePath)) stop(paste("File does not exist: ", filePath))
-  if (dir.exists(filePath)) stop(paste("Expected a file path, got a directory: ", filePath))
+  if (!file.exists(filePath)) stop(paste("File does not exist: ", filePath), call. = FALSE)
+  if (dir.exists(filePath)) stop(paste("Expected a file path, got a directory: ", filePath), call. = FALSE)
   
   # large file warning (edge case)
   sz <- file.info(filePath)$size
@@ -52,6 +52,6 @@ CheckFile <- function(filePath)
   else 
   {
     # if file isn't supported, stop with an error message
-    stop("Unsupported file type. Expected .bam or .fastq/.fq (optionally .gz).")
+    stop("Unsupported file type. Expected .bam or .fastq/.fq (optionally .gz).", call. = FALSE)
   }
 }
