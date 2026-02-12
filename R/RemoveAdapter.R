@@ -67,13 +67,13 @@ RemoveAdapter <- function(qc_obj,
   
   # checks
   if (length(qc_obj@files) != 1L)
-    stop("RemoveAdapter() expects a QC object with exactly one file.")
+    stop("RemoveAdapter() expects a QC object with exactly one file.", call. = FALSE)
   if (!is.character(adapterSeq) || length(adapterSeq) != 1L || is.na(adapterSeq) || !nzchar(adapterSeq))
-    stop("RemoveAdapter(): adapterSeq must be non-empty character(1).")
+    stop("RemoveAdapter(): adapterSeq must be non-empty character(1).", call. = FALSE)
   
   to_int1 <- function(x, nm, min = 0L) {
     if (is.null(x) || !is.numeric(x) || length(x) != 1L || is.na(x) || x < min || x %% 1 != 0)
-      stop("RemoveAdapter(): ", nm, " must be a single integer >= ", min, ".")
+      stop("RemoveAdapter(): ", nm, " must be a single integer >= ", min, ".", call. = FALSE)
     as.integer(x)
   }
   MaxMismatchEnd <- to_int1(MaxMismatchEnd, "MaxMismatchEnd", 0L)
@@ -92,7 +92,7 @@ RemoveAdapter <- function(qc_obj,
   
   reads <- ImportFile(fpath)
   if (!inherits(reads, "QualityScaledDNAStringSet"))
-    stop("RemoveAdapter(): ImportFile() must return a QualityScaledDNAStringSet.")
+    stop("RemoveAdapter(): ImportFile() must return a QualityScaledDNAStringSet.", call. = FALSE)
   
   n_reads <- length(reads)
   if (n_reads == 0L) {

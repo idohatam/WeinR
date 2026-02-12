@@ -45,14 +45,14 @@ TrimLong <- function(qc_obj,
                      OutSuffix = "trimmed") {
   
   if (length(qc_obj@files) != 1L) {
-    stop("TrimLong() expects a QC object with exactly one file in qc_obj@files.")
+    stop("TrimLong() expects a QC object with exactly one file in qc_obj@files.", call. = FALSE)
   }
   
   # Validate Start/End
   .chk_int1 <- function(x, nm) {
     if (is.null(x)) return(invisible(TRUE))
     if (!is.numeric(x) || length(x) != 1L || is.na(x) || x < 0 || x %% 1 != 0) {
-      stop("TrimLong(): ", nm, " must be NULL or a single non-negative integer.")
+      stop("TrimLong(): ", nm, " must be NULL or a single non-negative integer.", call. = FALSE)
     }
     invisible(TRUE)
   }
@@ -69,7 +69,7 @@ TrimLong <- function(qc_obj,
   # Import reads
   reads <- ImportFile(fpath)
   if (!inherits(reads, "QualityScaledDNAStringSet")) {
-    stop("ImportFile() must return a QualityScaledDNAStringSet object.")
+    stop("ImportFile() must return a QualityScaledDNAStringSet object.", call. = FALSE)
   }
   
   n_reads <- length(reads)

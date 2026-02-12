@@ -40,7 +40,7 @@ ImportFile <- function(filePath,
   if (is.null(MinNumReads) || !is.numeric(MinNumReads) ||
       length(MinNumReads) != 1L || is.na(MinNumReads) ||
       MinNumReads < 1 || MinNumReads %% 1 != 0) {
-    stop("MinNumReads must be a single positive integer (>= 1).")
+    stop("MinNumReads must be a single positive integer (>= 1).", call. = FALSE)
   }
   MinNumReads <- as.integer(MinNumReads)
   
@@ -49,12 +49,12 @@ ImportFile <- function(filePath,
   Output <- if (infile %in% c("fastq", "fastq.gz")) {
     
     tryCatch(FastqCheck(filePath, n_records = 100L),
-             error = function(e) stop("FASTQ check failed: ", conditionMessage(e)))
+             error = function(e) stop("FASTQ check failed (corrupted/malformed): ", conditionMessage(e), call. = FALSE))
     
     tryCatch(
       Biostrings::readQualityScaledDNAStringSet(filePath),
       error = function(e) {
-        stop(sprintf("FASTQ read failed (corrupted/malformed): %s", conditionMessage(e)))
+        stop(sprintf("FASTQ read failed (corrupted/malformed): %s", conditionMessage(e)), call. = FALSE)
       }
     )
     

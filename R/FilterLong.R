@@ -42,7 +42,7 @@ FilterLong <- function(qc_obj,
                        OutSuffix = "filtered") {
   
   if (length(qc_obj@files) != 1L) {
-    stop("FilterLong() expects a QC object with exactly one file in qc_obj@files.")
+    stop("FilterLong() expects a QC object with exactly one file in qc_obj@files.", call. = FALSE)
   }
   
   if (!dir.exists(OutDir)) dir.create(OutDir, recursive = TRUE, showWarnings = FALSE)
@@ -57,7 +57,7 @@ FilterLong <- function(qc_obj,
   ## Retrieve metrics for this file (keyed by basename)
   file_metrics <- qc_obj@metrics[[fname]]
   if (is.null(file_metrics)) {
-    stop("Metrics not found for file: ", fpath)
+    stop("Metrics not found for file: ", fpath, call. = FALSE)
   }
   
   ## Extract per-read metrics
@@ -68,7 +68,7 @@ FilterLong <- function(qc_obj,
   ## Load reads
   reads <- ImportFile(fpath)
   if (!inherits(reads, "QualityScaledDNAStringSet")) {
-    stop("ImportFile() must return a QualityScaledDNAStringSet object.")
+    stop("ImportFile() must return a QualityScaledDNAStringSet object.", call. = FALSE)
   }
   
   ## consistency checks (invalid state: error)
@@ -83,7 +83,8 @@ FilterLong <- function(qc_obj,
       "  reads: ", n_reads, "\n",
       "  readLengths: ", length(lengths), "\n",
       "  meanprQscore: ", length(q_scores), "\n",
-      "  Ncount: ", length(n_counts)
+      "  Ncount: ", length(n_counts),
+      call. = FALSE
     )
   }
   
