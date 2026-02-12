@@ -4,10 +4,22 @@
 \alias{CreateReport}
 \title{Run QC on input files and (optionally) generate a report}
 \usage{
-CreateReport(files, report_name, render_report = TRUE, force = FALSE)
+CreateReport(
+  files,
+  MinNumReads = 1L,
+  report_name,
+  render_report = TRUE,
+  force = FALSE
+)
 }
 \arguments{
-\item{files}{Character vector of input file paths.}
+\item{files}{Character vector of input file paths, or a single directory
+containing \code{.fastq}, \code{.fastq.gz}, or \code{.bam} files. If a directory is
+provided, all matching files within it will be used.}
+
+\item{MinNumReads}{Integer(1). Minimum number of reads required to keep the file.
+Must be a single positive integer (>= 1). If fewer reads are present, the
+function warns and returns \code{NULL}.}
 
 \item{report_name}{Character. Base filename (without extension) for the report.}
 
@@ -20,7 +32,7 @@ A \code{LongReadQC} object containing metrics, plots, and summary tables for
 each input file (also saved to \code{WeinR_Outputs/qc.rds}).
 }
 \description{
-Runs quality control on one or more long-read FASTQ files, producing summary
+Runs quality control on one or more long-read FASTQ/BAM files, producing summary
 metrics and plots stored in a \code{LongReadQC} object. Optionally generates an
 HTML report and saves the QC object as an \code{.rds} file.
 }

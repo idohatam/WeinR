@@ -1,6 +1,6 @@
 #' Run QC on input files and (optionally) generate a report
 #'
-#' Runs quality control on one or more long-read FASTQ files, producing summary
+#' Runs quality control on one or more long-read FASTQ/BAM files, producing summary
 #' metrics and plots stored in a `LongReadQC` object. Optionally generates an
 #' HTML report and saves the QC object as an `.rds` file.
 #'
@@ -10,10 +10,12 @@
 #'   \item \code{WeinR_Outputs/qc.rds} for the saved QC object
 #' }
 #'
-#' @param files Character vector of input file paths.
+#' @param files Character vector of input file paths, or a single directory
+#'   containing `.fastq`, `.fastq.gz`, or `.bam` files. If a directory is
+#'   provided, all matching files within it will be used.
 #' @param MinNumReads Integer(1). Minimum number of reads required to keep the file.
-#'  Must be a single positive integer (>= 1). If fewer reads are present, the
-#'  function warns and returns \code{NULL}.
+#'   Must be a single positive integer (>= 1). If fewer reads are present, the
+#'   function warns and returns \code{NULL}.
 #' @param report_name Character. Base filename (without extension) for the report.
 #' @param render_report Logical. If \code{TRUE}, generate the HTML report.
 #' @param force Logical. If \code{TRUE}, overwrite existing report files.
@@ -46,6 +48,27 @@ CreateReport <- function(
     render_report = TRUE,
     force = FALSE
 ) {
+  
+  # ---- allow passing a directory ----
+  if (length(files) == 1L && dir.exists(files)) {
+    
+    input_dir <- normalizePath(files, mustWork = TRUE)
+    
+    files <- list.files(
+      path = input_dir,
+      pattern = "\\.(fastq|fastq\\.gz|bam)$",
+      full.names = TRUE
+    )
+    
+    if (length(files) == 0L) {
+      stop(
+        "No .fastq, .fastq.gz, or .bam files found in: ",
+        input_dir,
+        call. = FALSE
+      )
+    }
+  }
+  # --------
   
   qc_obj <- .init_qc_object(files)
   
