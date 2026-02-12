@@ -86,7 +86,7 @@ Reporter <- function(
   
   # Legend PNGs (absolute paths)
   quality_legend_png <- system.file("images", "quality_legend.png", package = "WeinR")
-  if (!nzchar(pkg_css)) {
+  if (!nzchar(quality_legend_png)) {
     stop("Could not find 'images/quality_legend.png' in the installed WeinR package.", call. = FALSE)
   }
   #quality_legend_png <- normalizePath(
@@ -96,7 +96,7 @@ Reporter <- function(
   #)
   
   per_pos_q_legend_png <- system.file("images", "per_pos_q_legend.png", package = "WeinR")
-  if (!nzchar(pkg_css)) {
+  if (!nzchar(per_pos_q_legend_png)) {
     stop("Could not find 'images/per_pos_q_legend.png' in the installed WeinR package.", call. = FALSE)
   }
   #per_pos_q_legend_png <- normalizePath(
