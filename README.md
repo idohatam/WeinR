@@ -94,7 +94,7 @@ qc3 <- ProcessReads(
   Start = 3,
   End = 6,
   OutFileType = c("fastq", "bam"),
-  outpath = "name_trimmed",
+  outpath = "_trimmed", 
   force = TRUE
 )
 ```
