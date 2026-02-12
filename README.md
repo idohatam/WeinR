@@ -82,21 +82,30 @@ After QC, use `ProcessReads()` to filter, trim, or remove adapters.
 ```r
 qc3 <- ProcessReads(
   obj,
-  filter = TRUE,
-  MinAvgQS = 20,
-  MinLength = 100,
-  MaxNumberNs = 2,
-  AdapterSeq = "CCACGATAAATGCGAAAACTAG",
-  MaxMismatchEnd = 3,
-  MinOverlapEnd = 60,
-  MinInternalDistance = 100,
-  MinFragmentLength = 200,
-  Start = 3,
-  End = 6,
-  OutFileType = c("fastq", "bam"),
-  outpath = "_trimmed", 
-  force = TRUE
+
+  # --- Filtering options ---
+  filter = TRUE,        # if TRUE, remove low-quality/short reads
+  MinAvgQS = 20,        # minimum average read quality score to keep
+  MinLength = 100,      # minimum read length (bp) to keep
+  MaxNumberNs = 2,      # maximum allowed ambiguous bases (N) per read
+
+  # --- Adapter trimming options ---
+  AdapterSeq = "CCACGATAAATGCGAAAACTAG",  # adapter sequence to detect/remove
+  MaxMismatchEnd = 3,    # maximum mismatches allowed in adapter match
+  MinOverlapEnd = 60,    # minimum overlap required to trim an adapter
+  MinInternalDistance = 100, # distance threshold for internal adapter detection
+  MinFragmentLength = 200,   # minimum fragment length kept after trimming
+
+  # --- Fixed end trimming options ---
+  Start = 3,             # trim 3 bases from the 5' end of each read
+  End = 6,               # trim 6 bases from the 3' end of each read
+
+  # --- Output options ---
+  OutFileType = c("fastq", "bam"),  # output file formats to write
+  outpath = "my_data_trimmed",      # report name
+  force = TRUE                      # overwrite existing output files
 )
+
 ```
 You can customize this step depending on your needs:
 
@@ -104,6 +113,23 @@ You can customize this step depending on your needs:
 - Only trimming
 - Only adapter removal
 - Or a full workflow combining all steps
+
+### Common simple use cases
+
+#### Filter only:
+```r
+ProcessReads(obj, filter = TRUE, MinAvgQS = 20, MinLength = 100, outpath = "Data_Filtered_Only")
+```
+
+#### Trim ends only:
+```r
+ProcessReads(obj, Start = 5, End = 5, outpath = "Data_Trimmed_Only")
+```
+
+#### Adapter removal only:
+```r
+ProcessReads(obj, AdapterSeq = "CCACGATAAATGCGAAAACTAG", outpath = "Adapted_Removed_Report")
+```
 
 ### Typical Workflow Summary
 
