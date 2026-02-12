@@ -1,3 +1,38 @@
+#' Create an HTML QC report from a LongReadQC object
+#'
+#' Writes an R Markdown (`.Rmd`) file to `path` and (optionally) renders it to
+#' an HTML report using `rmarkdown::render()`. The report includes a DT summary
+#' table and plot sections assembled from `mfa` (a `LongReadQC` object).
+#'
+#' @param path Character. Output path for the report **without or with** the `.Rmd`
+#'   extension. If no extension is provided, `.Rmd` is appended. Directories are
+#'   created if needed.
+#' @param title Character. Report title shown in the rendered HTML.
+#' @param author Character. Report author shown in the rendered HTML.
+#' @param date Character. Report date shown in the rendered HTML.
+#' @param toc Logical. Whether to include a table of contents.
+#' @param code_folding Character. One of `"none"`, `"show"`, `"hide"`. Controls
+#'   code folding in the HTML output.
+#' @param theme Character. R Markdown Bootstrap theme name (e.g. `"cosmo"`).
+#' @param highlight Character. Syntax highlighting theme (e.g. `"tango"`).
+#' @param overwrite Logical. If `FALSE` and the output `.Rmd` exists, an error is
+#'   thrown. If `TRUE`, existing files are replaced.
+#' @param render_html Logical. If `TRUE`, renders the `.Rmd` to HTML via
+#'   `rmarkdown::render()`.
+#' @param open_browser Logical. If `TRUE` and `render_html=TRUE`, opens the
+#'   rendered HTML in a browser.
+#' @param mfa A `LongReadQC` object (required). Used by the report as
+#'   `params$mfa`.
+#' @param metadata Logical. If `TRUE`, include a metadata table summarizing
+#'
+#' @return If `render_html=TRUE`, an (invisible) list with elements `rmd` and
+#'   `html` giving normalized paths to the generated files. If `render_html=FALSE`,
+#'   an (invisible) list with element `rmd`.
+#'
+#' @details
+#' The stylesheet is shipped with the package at `inst/styles/colorblind.css`.
+#' For portability, it is copied next to the generated `.Rmd` and referenced
+#' using a relative path in the YAML header.
 Reporter <- function(
     path          = "report.Rmd",
     title         = "My Report",
@@ -35,12 +70,18 @@ Reporter <- function(
     )
   }
   
+  # Locate package CSS (installed from inst/styles/colorblind.css)
+  pkg_css <- system.file("styles", "colorblind.css", package = "WeinR")
+  if (!nzchar(pkg_css)) {
+    stop("Could not find 'styles/colorblind.css' in the installed WeinR package.", call. = FALSE)
+  }
+  
   # DEV MODE css (absolute path is fine)
-  pkg_css <- normalizePath(
-    file.path("inst", "styles", "colorblind.css"),
-    winslash = "/",
-    mustWork = TRUE
-  )
+  #pkg_css <- normalizePath(
+   # file.path("inst", "styles", "colorblind.css"),
+    #winslash = "/",
+    #mustWork = TRUE
+  #)
   
   # Legend PNGs (absolute paths)
   quality_legend_png <- normalizePath(
