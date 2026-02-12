@@ -83,17 +83,27 @@ Reporter <- function(
     #mustWork = TRUE
   #)
   
+  
   # Legend PNGs (absolute paths)
-  quality_legend_png <- normalizePath(
-    file.path("inst", "images", "quality_legend.png"),
-    winslash = "/",
-    mustWork = TRUE
-  )
-  per_pos_q_legend_png <- normalizePath(
-    file.path("inst", "images", "per_pos_q_legend.png"),
-    winslash = "/",
-    mustWork = TRUE
-  )
+  quality_legend_png <- system.file("images", "quality_legend.png", package = "WeinR")
+  if (!nzchar(pkg_css)) {
+    stop("Could not find 'images/quality_legend.png' in the installed WeinR package.", call. = FALSE)
+  }
+  #quality_legend_png <- normalizePath(
+  # file.path("inst", "images", "quality_legend.png"),
+  #winslash = "/",
+  #mustWork = TRUE
+  #)
+  
+  per_pos_q_legend_png <- system.file("images", "per_pos_q_legend.png", package = "WeinR")
+  if (!nzchar(pkg_css)) {
+    stop("Could not find 'images/per_pos_q_legend.png' in the installed WeinR package.", call. = FALSE)
+  }
+  #per_pos_q_legend_png <- normalizePath(
+  # file.path("inst", "images", "per_pos_q_legend.png"),
+  #  winslash = "/",
+  #  mustWork = TRUE
+  #)
   
   yaml <- c(
     "---",
