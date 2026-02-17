@@ -25,15 +25,7 @@ make_per_position_plot <- function(perPosQuality, window = 2000) {
   
   # Summarise per bin
   df <- perPosQuality |>
-    dplyr::group_by(.data$bin) |>
-    dplyr::summarise(
-      q10    = stats::quantile(.data$mean, 0.10, na.rm = TRUE),
-      q25    = stats::quantile(.data$mean, 0.25, na.rm = TRUE),
-      median = stats::median(.data$mean, na.rm = TRUE),
-      q75    = stats::quantile(.data$mean, 0.75, na.rm = TRUE),
-      q90    = stats::quantile(.data$mean, 0.90, na.rm = TRUE),
-      .groups = "drop"
-    )
+    dplyr::group_by(.data$bin)
   
   if (base::nrow(df) == 0L) {
     return(NULL)
@@ -41,33 +33,12 @@ make_per_position_plot <- function(perPosQuality, window = 2000) {
   
   df$pos <- df$bin * window
   
-  # ---- Inline loess smoothing ----
-  fit_median <- stats::loess(median ~ pos, data = df, span = 0.3)
-  fit_q25    <- stats::loess(q25    ~ pos, data = df, span = 0.3)
-  fit_q75    <- stats::loess(q75    ~ pos, data = df, span = 0.3)
-  fit_q10    <- stats::loess(q10    ~ pos, data = df, span = 0.3)
-  fit_q90    <- stats::loess(q90    ~ pos, data = df, span = 0.3)
-  
-  df$median_s <- stats::predict(fit_median)
-  df$q25_s    <- stats::predict(fit_q25)
-  df$q75_s    <- stats::predict(fit_q75)
-  df$q10_s    <- stats::predict(fit_q10)
-  df$q90_s    <- stats::predict(fit_q90)
-  
   # ---- Plot ----
   ggplot2::ggplot(df, ggplot2::aes(x = pos)) +
     
-    # Outer 10–90% band
-    ggplot2::geom_ribbon(
-      ggplot2::aes(ymin = q10_s, ymax = q90_s),
-      fill = "grey70",
-      alpha = 0.4,
-      color = NA
-    ) +
-    
     # Inner 25–75% band
     ggplot2::geom_ribbon(
-      ggplot2::aes(ymin = q25_s, ymax = q75_s),
+      ggplot2::aes(ymin = q25, ymax = q75),
       fill = "#56B4E9",
       alpha = 0.6,
       color = NA
@@ -75,7 +46,7 @@ make_per_position_plot <- function(perPosQuality, window = 2000) {
     
     # Median line
     ggplot2::geom_line(
-      ggplot2::aes(y = median_s),
+      ggplot2::aes(y = median),
       color = "#0072B2",
       linewidth = 1.4
     ) +
