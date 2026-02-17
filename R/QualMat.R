@@ -37,6 +37,8 @@ QualMat <- function(qc_obj, stringset, filename){
   #per file
   perFileGC <- sum(af[,'G']+ af[,'C'])/yield
   
+  rm(af)
+  
   #per position gc content
   # dataframe, 4 columns for each base: each has proportion of given base
   # row for each read
@@ -50,7 +52,9 @@ QualMat <- function(qc_obj, stringset, filename){
   perReadQscore <- lapply(qual_list, function(q) mean(q))
   
   #per position
-  q_stats <- chunked_quality_per_position(Biostrings::quality(stringset), chunk_size = 5000)
+  q_stats <- chunked_quality_per_position(qual_list,lengths, chunk_size = 1000)
+  
+  rm(qual_list)
   
   #calculate summary metrics
   #N50

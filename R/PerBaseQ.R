@@ -4,29 +4,17 @@
 #' set of reads by processing positions in chunks, which helps keep peak memory
 #' use bounded for very long reads.
 #'
-#' @param qs_dna A `Biostrings::QualityScaledDNAStringSet` (or compatible) object
+#' @param qs_dna A Biostrings::QualityScaledDNAStringSet (or compatible) object
 #'   containing per-base quality scores.
 #' @param chunk_size Integer scalar giving the number of positions per chunk.
 #'
-#' @return A `data.table` with columns `position`, `mean`, `median`, `q25`, and
-#'   `q75`.
+#' @return A data.table with columns position, mean, median, q25, and
+#'   q75.
 #'
 #' @keywords internal
-chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
+chunked_quality_per_position <- function(qual_list, read_lengths, chunk_size = 1000) {
   
-  # Convert qualities to integer vectors once (Phred+33)
-  # Note: `as.numeric()` on the quality object yields Phred scores.
-  cl <- parallel::makeCluster(parallel::detectCores() - 1)
-  on.exit(try(parallel::stopCluster(cl), silent = TRUE), add = TRUE)
-  
-  parallel::clusterExport(cl, "qs_dna", envir = environment())
-  parallel::clusterEvalQ(cl, { library(Biostrings); NULL })
-  
-  qual_list <- parallel::parLapply(cl, seq_along(qs_dna), function(i) {
-    as.numeric(qs_dna[[i]])
-  })
-  
-  read_lengths <- Biostrings::width(qs_dna)
+  #read_lengths <- Biostrings::width(qs_dna)
   max_len <- max(read_lengths)
   
   # Precompute order of reads by length for faster validity lookups
@@ -36,6 +24,7 @@ chunked_quality_per_position <- function(qs_dna, chunk_size = 1000) {
   chunk_i <- 1
   
   for (start_pos in seq(1, max_len, by = chunk_size)) {
+
     end_pos <- min(start_pos + chunk_size - 1, max_len)
     chunk_len <- end_pos - start_pos + 1
     
