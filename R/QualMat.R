@@ -45,7 +45,8 @@ QualMat <- function(qc_obj, stringset, filename){
   
   #Quality scores
   #per file
-  qual_list <- lapply(as.character(Biostrings::quality(stringset)), function(q) utf8ToInt(q) - 33)
+  qual_list <- lapply(as.character(Biostrings::quality(stringset)), function(q) as.integer(utf8ToInt(q) - 33))
+  
   avgQscore <- mean(unlist(qual_list))
   
   #per read
