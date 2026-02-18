@@ -101,7 +101,7 @@ qc3 <- ProcessReads(
   End = 6,               # trim 6 bases from the 3' end of each read
 
   # --- Output options ---
-  OutFileType = c("fastq", "bam"),  # output file formats to write
+  OutFileType = c("fastq", "bam"),  # output file formats to write, allowed files include fastq, bam, and fasta
   outpath = "my_data_trimmed",      # report name
   force = TRUE                      # overwrite existing output files
 )
@@ -160,11 +160,12 @@ WeinR_Outputs/run_YYYY-MM-DD_HHMMSS/
 ├── reports/
 │   └── weinr_qc_report.html
 │   └── weinr_qc_report.rmd
-├── processed/  (if ProcessReads run)
-│   ├── sample1_processed_date_time.fastq
-│   └── ...
 └── objects/
     └── qc.rds
+
+├── WeinR_Outputs/processed_Files/  (if ProcessReads run)
+│   ├── sample1_processed_date_time.fastq
+│   └── ...
 ```
 
 ## Known limitations (Beta — please read!)
