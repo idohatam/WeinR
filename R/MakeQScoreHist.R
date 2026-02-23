@@ -9,7 +9,7 @@
 #'
 #' @return A ggplot object, or NULL if no finite Q-scores are available.
 #' @keywords internal
-make_quality_plot <- function(meanprQscore, avgQScore = NULL) {
+make_quality_plot <- function(meanprQscore, avgQScore = NULL, file_name) {
   
   meanprQscore <- as.numeric(base::unlist(meanprQscore, use.names = FALSE))
   meanprQscore <- meanprQscore[base::is.finite(meanprQscore)]
@@ -70,7 +70,7 @@ make_quality_plot <- function(meanprQscore, avgQScore = NULL) {
     ggplot2::labs(
       x = "Average Phred Q-Score",
       y = "Read Count",
-      #title = "Average Q-Score Distribution"
+      title = file_name
     ) +
     
     ggplot2::theme_minimal(base_size = 15) +

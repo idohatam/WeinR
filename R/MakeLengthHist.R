@@ -6,7 +6,7 @@
 #'
 #' @return A ggplot object.
 #' @keywords internal
-make_length_plot <- function(readLengths) {
+make_length_plot <- function(readLengths, file_name) {
   
   readLengths <- as.numeric(unlist(readLengths, use.names = FALSE))
   readLengths <- readLengths[is.finite(readLengths) & readLengths > 0]
@@ -32,7 +32,7 @@ make_length_plot <- function(readLengths) {
     ggplot2::labs(
       x = "Read Length (bp, log scale)",
       y = "Read Count",
-      #title = "Read Length Distribution"
+      title = file_name
     ) +
     ggplot2::theme_minimal(base_size = 15) +
     ggplot2::theme(

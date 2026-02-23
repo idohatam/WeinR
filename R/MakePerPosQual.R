@@ -8,7 +8,7 @@
 #'
 #' @return A ggplot object, or NULL if input is empty.
 #' @keywords internal
-make_per_position_plot <- function(perPosQuality, window = 2000) {
+make_per_position_plot <- function(perPosQuality, window = 2000, file_name) {
   
   # Input checks
   if (base::is.null(perPosQuality) || base::nrow(perPosQuality) == 0L) {
@@ -52,7 +52,7 @@ make_per_position_plot <- function(perPosQuality, window = 2000) {
     ) +
     
     ggplot2::labs(
-      # title = "Per-Position Quality",
+      title = file_name,
       subtitle = base::sprintf("Binned at %d bp", window),
       x = "Read Position (bp)",
       y = "Phred Q-Score"

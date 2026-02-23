@@ -8,7 +8,7 @@
 #'
 #' @return A ggplot object, or NULL if no valid points are available.
 #' @keywords internal
-make_quality_vs_length_plot <- function(readLengths, meanprQscore) {
+make_quality_vs_length_plot <- function(readLengths, meanprQscore, file_name) {
   
   df <- data.frame(
     read_length = as.numeric(base::unlist(readLengths, use.names = FALSE)),
@@ -48,7 +48,7 @@ make_quality_vs_length_plot <- function(readLengths, meanprQscore) {
     ggplot2::labs(
       x = "Read Length (bp, log scale)",
       y = "Average Q-Score",
-      #title = "Read Quality vs. Read Length"
+      title = file_name
     ) +
     
     ggplot2::theme_minimal(base_size = 15) +

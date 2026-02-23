@@ -97,14 +97,14 @@ QualPlot <- function(qc_obj,
   
   # ---- Build → save → discard ----
   out_paths <- list(
-    length_hist  = save_png(make_length_plot(metrics$readLengths), "length_hist"),
-    quality_hist = save_png(make_quality_plot(metrics$meanprQscore), "quality_hist"),
-    gc_hist      = save_png(make_gc_plot(metrics$prGCcontent), "gc_hist"),
+    length_hist  = save_png(make_length_plot(metrics$readLengths, file_name = filename), "length_hist"),
+    quality_hist = save_png(make_quality_plot(metrics$meanprQscore, file_name = filename), "quality_hist"),
+    gc_hist      = save_png(make_gc_plot(metrics$prGCcontent, file_name = filename), "gc_hist"),
     q_vs_length  = save_png(
-      make_quality_vs_length_plot(metrics$readLengths, metrics$meanprQscore),
+      make_quality_vs_length_plot(metrics$readLengths, metrics$meanprQscore, file_name = filename),
       "q_vs_length"
     ),
-    per_pos_q    = save_png(make_per_position_plot(metrics$perPosQuality), "per_pos_q")
+    per_pos_q    = save_png(make_per_position_plot(metrics$perPosQuality, file_name = filename), "per_pos_q")
   )
   
   qc_obj@plots[[filename]] <- out_paths

@@ -6,7 +6,7 @@
 #'
 #' @return A ggplot object, or NULL if no finite GC values are available.
 #' @keywords internal
-make_gc_plot <- function(prGCContent) {
+make_gc_plot <- function(prGCContent, file_name) {
   
   # Flatten and clean
   prGCContent <- as.numeric(base::unlist(prGCContent, use.names = FALSE))
@@ -39,7 +39,7 @@ make_gc_plot <- function(prGCContent) {
     ggplot2::labs(
       x = "GC Content",
       y = "Read Count",
-      #title = "GC Content Distribution"
+      title = file_name
     ) +
     ggplot2::theme_minimal(base_size = 15) +
     ggplot2::theme(
