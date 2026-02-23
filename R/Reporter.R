@@ -307,7 +307,7 @@ Reporter <- function(
     "if (length(qvl)) render_grid_png(qvl, max_cols = 3, height_in = 3.5) else cat('No quality-vs-length plots available')",
     "```",
     "",
-    "### **Per-position quality (binned at 2000 bp)**",
+    "### **Per-position quality (smoothed ±2500 positions)**",
     "```{r, fig.align='left', out.width='20%'}",
     sprintf("knitr::include_graphics('%s')", per_pos_q_legend_png),
     "```",
