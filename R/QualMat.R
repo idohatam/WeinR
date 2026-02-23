@@ -82,6 +82,7 @@ QualMat <- function(qc_obj, stringset, filename){
   # Add summary metrics 
   summary_df <- data.frame(
     File = filename,
+    `Read Count` = length(lengths),
     `Yield (bp)` = yield,
     N50 = N50,
     N90 = N90,

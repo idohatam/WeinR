@@ -13,6 +13,7 @@
       ),
       summary_metrics = data.frame(
         File = character(length(files)),
+        `Read Count` = numeric(length(files)),
         `Yield (bp)`= numeric(length(files)),
         N50 = numeric(length(files)),
         N90 = numeric(length(files)),
