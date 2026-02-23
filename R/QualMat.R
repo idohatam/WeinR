@@ -47,7 +47,7 @@ QualMat <- function(qc_obj, stringset, filename){
   #per file
   qual_list <- lapply(as.character(Biostrings::quality(stringset)), function(q) as.integer(utf8ToInt(q) - 33))
   
-  avgQscore <- mean(unlist(qual_list))
+  avgQscore <- round(mean(unlist(qual_list)),2)
   
   #per read
   perReadQscore <- lapply(qual_list, function(q) mean(q))
@@ -82,11 +82,11 @@ QualMat <- function(qc_obj, stringset, filename){
   # Add summary metrics 
   summary_df <- data.frame(
     File = filename,
-    Yield = yield,
+    `Yield (bp)` = yield,
     N50 = N50,
     N90 = N90,
-    avgQscore = avgQscore,
-    `N count` = sum(N),
+    `Average Per Read Q Score` = avgQscore,
+    `N Count` = sum(N),
     stringsAsFactors = FALSE
   )
   qc_obj@summary_metrics <- rbind(qc_obj@summary_metrics, summary_df)

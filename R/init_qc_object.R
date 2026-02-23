@@ -13,11 +13,11 @@
       ),
       summary_metrics = data.frame(
         File = character(length(files)),
-        Yield = numeric(length(files)),
+        `Yield (bp)`= numeric(length(files)),
         N50 = numeric(length(files)),
         N90 = numeric(length(files)),
-        avgQscore = numeric(length(files)),
-        `N count` = numeric(length(files)),
+        `Average Per Read Q Score` = numeric(length(files)),
+        `N Count` = numeric(length(files)),
         stringsAsFactors = FALSE
       ))
 }
