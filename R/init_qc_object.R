@@ -12,8 +12,8 @@
         #n_files = length(files)
       ),
       summary_metrics = data.frame(
-        file = character(length(files)),
-        yield = numeric(length(files)),
+        File = character(length(files)),
+        Yield = numeric(length(files)),
         N50 = numeric(length(files)),
         N90 = numeric(length(files)),
         avgQscore = numeric(length(files)),

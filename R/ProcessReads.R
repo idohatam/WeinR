@@ -139,7 +139,7 @@ ProcessReads <- function(qc_obj,
     single_qc@files <- fpath
     single_qc@metrics[[key]] <- qc_obj@metrics[[key]]
     single_qc@summary_metrics <- qc_obj@summary_metrics[
-      qc_obj@summary_metrics$file == key, , drop = FALSE
+      qc_obj@summary_metrics$File == key, , drop = FALSE
     ]
     
     tmp1 <- NULL

@@ -81,8 +81,8 @@ QualMat <- function(qc_obj, stringset, filename){
   
   # Add summary metrics 
   summary_df <- data.frame(
-    file = filename,
-    yield = yield,
+    File = filename,
+    Yield = yield,
     N50 = N50,
     N90 = N90,
     avgQscore = avgQscore,

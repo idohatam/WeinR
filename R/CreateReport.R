@@ -156,8 +156,8 @@ CreateReport <- function(
   
   sm <- qc_obj@summary_metrics
   
-  if (!"file" %in% colnames(sm)) {
-    stop("qc_obj@summary_metrics must contain a 'file' column.", call. = FALSE)
+  if (!"File" %in% colnames(sm)) {
+    stop("qc_obj@summary_metrics must contain a 'File' column.", call. = FALSE)
   }
   
   out_csv <- file.path(metrics_dir, paste0(report_name, "_summary_metrics.csv"))
