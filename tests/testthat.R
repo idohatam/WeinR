@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(longR)
+library(WeinR)
 
-test_check("longR")
+test_check("WeinR")

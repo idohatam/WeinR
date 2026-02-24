@@ -1,2 +1,8 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^Owens_tests\.Rmd$
+^testData_1_file$
+^testData_3_files$
+^reports$
+^data-raw$
+^inst/dev$

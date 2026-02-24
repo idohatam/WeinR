@@ -1,18 +1,41 @@
-Package: longR
-Title: Long-Read Sequencing QC and Processing
-Version: 0.0.0.9000
-Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
+Package: WeinR
+Title: Long-Read Sequencing Quality Control and Processing
+Version: 0.1.0
+Authors@R: c(
+    person("Sarah", "Bowker", , "sarahbowker00@gmail.com", role = "aut"),
+    person("Owen", "Coelho", , "owendorancoelho@gmail.com", role = "aut"),
+    person("Nava", "Meadi", , "navameadi@gmail.com", role = "aut"),
+    person("Myles", "Taillefer", , "mylestaillefer@gmail.com", role = "aut"),
+    person("Ido", "Hatam", , "ihatam@langara.ca", role = c("ctb", "cre"))
+  )
 Description: Quality control and processing tools for Oxford Nanopore
     long-read sequencing data.
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+License: MIT + file LICENSE
 Encoding: UTF-8
-Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.0.0
+Depends: R (>= 4.4.0)
+Imports:
+    Biostrings,
+    data.table,
+    dplyr,
+    IRanges,
+    Rsamtools,
+    tools,
+    ggplot2,
+    ggrastr,
+    matrixStats,
+    methods,
+    scales,
+    stats,
+    utils,
+    methods,
+    ShortRead
 Suggests: 
     knitr,
     rmarkdown,
+    DT,
     testthat (>= 3.0.0)
-Config/testthat/edition: 3
 VignetteBuilder: knitr
+biocViews: Sequencing, QualityControl, DataImport
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Config/testthat/edition: 3
