@@ -1,6 +1,6 @@
 Package: WeinR
 Title: Long-Read Sequencing Quality Control and Processing
-Version: 0.99.0
+Version: 0.1.0
 Authors@R: c(
     person("Sarah", "Bowker", , "sarahbowker00@gmail.com", role = "aut"),
     person("Owen", "Coelho", , "owendorancoelho@gmail.com", role = "aut"),
