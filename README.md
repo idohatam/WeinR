@@ -192,7 +192,7 @@ https://forms.office.com/r/DZ9Nkrjspq
 
 ## Thanks:
 
-We would like to thank Shawn Martin Simpson, Carmen Li, Ben Li, and the rest of the ONT crew for helping with this feedback to this project. 
+We would like to thank Shawn Martin Simpson, Carmen Li, Ben Li, and the rest of the ONT crew for helping with this feedback for this project. 
 
 
 ## License
