@@ -190,6 +190,10 @@ Planned improvements for Bioconductor readiness include:
 If you encounter bugs or have feature requests that would support Bioconductor submission, please share feedback:
 https://forms.office.com/r/DZ9Nkrjspq
 
+## Thanks:
+
+We would like to thank Shawn Martin Simpson, Carmen Li, Ben Li, and the rest of the ONT crew for helping with this feedback to this project. 
+
 
 ## License
 
