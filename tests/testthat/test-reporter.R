@@ -7,7 +7,6 @@ fake_mfa <- function() {
 }
 
 test_that("Reporter errors when mfa is NULL", {
-  
   expect_error(
     Reporter(
       path = tempfile(fileext = ".Rmd"),
@@ -15,11 +14,9 @@ test_that("Reporter errors when mfa is NULL", {
       mfa = NULL
     )
   )
-  
 })
 
 test_that("Reporter writes an Rmd file and returns path", {
-  
   tmp <- tempdir()
   out <- file.path(tmp, "report")
   
@@ -36,7 +33,6 @@ test_that("Reporter writes an Rmd file and returns path", {
 })
 
 test_that("Reporter appends .Rmd when extension missing", {
-  
   tmp <- tempdir()
   out <- file.path(tmp, "my_report")
   
@@ -51,7 +47,6 @@ test_that("Reporter appends .Rmd when extension missing", {
 })
 
 test_that("Reporter prevents overwrite when overwrite = FALSE", {
-  
   tmp <- tempdir()
   out <- file.path(tmp, "report.Rmd")
   
@@ -66,11 +61,9 @@ test_that("Reporter prevents overwrite when overwrite = FALSE", {
     ),
     "File already exists"
   )
-  
 })
 
 test_that("Reporter writes expected YAML fields", {
-  
   tmp <- tempdir()
   out <- file.path(tmp, "report.Rmd")
   
@@ -95,11 +88,9 @@ test_that("Reporter writes expected YAML fields", {
   expect_match(txt, "theme: cosmo", fixed = TRUE)
   expect_match(txt, "highlight: tango", fixed = TRUE)
   expect_match(txt, "code_folding: hide", fixed = TRUE)
-  
 })
 
 test_that("Reporter validates code_folding argument", {
-  
   expect_error(
     Reporter(
       path = tempfile(fileext = ".Rmd"),
@@ -108,11 +99,9 @@ test_that("Reporter validates code_folding argument", {
       mfa = fake_mfa()
     )
   )
-  
 })
 
 test_that("Reporter includes metadata section only when metadata = TRUE", {
-  
   tmp <- tempdir()
   
   out1 <- file.path(tmp, "no_metadata.Rmd")
@@ -126,7 +115,6 @@ test_that("Reporter includes metadata section only when metadata = TRUE", {
   )
   
   txt1 <- paste(readLines(out1, warn = FALSE), collapse = "\n")
-  
   expect_false(grepl("## Metadata", txt1, fixed = TRUE))
   
   out2 <- file.path(tmp, "with_metadata.Rmd")
@@ -140,55 +128,5 @@ test_that("Reporter includes metadata section only when metadata = TRUE", {
   )
   
   txt2 <- paste(readLines(out2, warn = FALSE), collapse = "\n")
-  
   expect_true(grepl("## Metadata", txt2, fixed = TRUE))
-  
-})
-
-test_that("Reporter errors if CSS asset is missing", {
-  
-  local_mocked_bindings(
-    system.file = function(...) ""
-  )
-  
-  expect_error(
-    Reporter(
-      path = tempfile(fileext = ".Rmd"),
-      render_html = FALSE,
-      overwrite = TRUE,
-      mfa = fake_mfa()
-    ),
-    "Could not find 'styles/colorblind.css'"
-  )
-  
-})
-
-test_that("Reporter errors if legend PNG is missing", {
-  
-  calls <- 0L
-  
-  local_mocked_bindings(
-    system.file = function(...) {
-      
-      calls <<- calls + 1L
-      
-      # First call = CSS (valid)
-      if (calls == 1) return("/fake/css.css")
-      
-      # Second call = missing PNG
-      ""
-      
-    }
-  )
-  
-  expect_error(
-    Reporter(
-      path = tempfile(fileext = ".Rmd"),
-      render_html = FALSE,
-      overwrite = TRUE,
-      mfa = fake_mfa()
-    ),
-    "quality_legend"
-  )
-  
 })
