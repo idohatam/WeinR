@@ -4,7 +4,7 @@
 \alias{make_length_plot}
 \title{Read length histogram (log10 x-axis)}
 \usage{
-make_length_plot(readLengths)
+make_length_plot(readLengths, file_name)
 }
 \arguments{
 \item{readLengths}{Numeric vector (or list coercible to numeric) of read lengths.}

@@ -2,20 +2,20 @@
 % Please edit documentation in R/MakePerPosQual.R
 \name{make_per_position_plot}
 \alias{make_per_position_plot}
-\title{Per-position quality plot}
+\title{Per-position quality plot (no binning)}
 \usage{
-make_per_position_plot(perPosQuality, window = 2000)
+make_per_position_plot(perPosQuality, file_name)
 }
 \arguments{
-\item{perPosQuality}{Data.frame with columns \code{position} and \code{mean}.}
+\item{perPosQuality}{Data.frame with columns: position, mean, median, q25, q75}
 
-\item{window}{Integer bin size in bp.}
+\item{file_name}{Character title for the plot.}
 }
 \value{
 A ggplot object, or NULL if input is empty.
 }
 \description{
-Bins per-position quality values by read position, summarizes quantiles per bin,
-applies loess smoothing to each quantile curve, and plots ribbons with a median line.
+Applies rolling-mean smoothing (±2500 positions) to each quantile curve
+and plots ribbons with a median line.
 }
 \keyword{internal}

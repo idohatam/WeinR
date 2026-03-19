@@ -4,7 +4,7 @@
 \alias{make_quality_plot}
 \title{Average Q-score histogram (with mean/median lines)}
 \usage{
-make_quality_plot(meanprQscore, avgQScore = NULL)
+make_quality_plot(meanprQscore, avgQScore = NULL, file_name)
 }
 \arguments{
 \item{meanprQscore}{Numeric vector/list of per-read mean Phred Q-scores.}

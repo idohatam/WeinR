@@ -5,19 +5,19 @@
 \alias{LongReadQC-class}
 \title{LongReadQC Class}
 \description{
-An S4 class to store quality control results for long-read sequencing data
+An S4 class to store quality control results for long-read sequencing data.
 }
 \section{Slots}{
 
 \describe{
-\item{\code{files}}{character vector of input file paths}
+\item{\code{files}}{Character vector of input file paths.}
 
-\item{\code{metrics}}{named list of data.frames containing per-read quality metrics}
+\item{\code{metrics}}{Named list of data.frames containing per-read quality metrics.}
 
-\item{\code{plots}}{nested list structure: file -> plot_type -> ggplot object}
+\item{\code{plots}}{Nested list structure: file -> plot_type -> ggplot object.}
 
-\item{\code{summary_metrics}}{data.frame with aggregated statistics across files}
+\item{\code{summary_metrics}}{data.frame with aggregated statistics across files.}
 
-\item{\code{metadata}}{list containing analysis parameters, timestamps, etc.}
+\item{\code{metadata}}{List containing analysis parameters, timestamps, and related information.}
 }}
 
