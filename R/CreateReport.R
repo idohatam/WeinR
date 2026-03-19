@@ -105,6 +105,7 @@ CreateReport <- function(
       {
         qc_obj <- QualMat(qc_obj, qsds, fname)
         
+        message(sprintf("Generating Plots for %s\n", fname))
         qc_obj <- QualPlot(
           qc_obj,
           filename  = fname,
