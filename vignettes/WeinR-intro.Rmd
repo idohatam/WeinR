@@ -98,7 +98,7 @@ qc_filtered <- ProcessReads(
   title = "Filtered QC Report",
   render_report = FALSE,
   force = TRUE,
-  verbose = FALSE
+  verbose = TRUE
 )
 
 qc_filtered
@@ -123,7 +123,7 @@ qc_full <- ProcessReads(
   title = "Full Processing Workflow",
   render_report = FALSE,
   force = TRUE,
-  verbose = FALSE,
+  verbose = TRUE,
   KeepIntermediates = FALSE,
   FinalSuffix = "processed"
 )
