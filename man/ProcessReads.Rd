@@ -142,5 +142,5 @@ qc3 <- ProcessReads(qc_obj,
 
 }
 \seealso{
-\code{\link[=FilterLong]{FilterLong()}}, \code{\link[=RemoveAdapter]{RemoveAdapter()}}, \code{\link[=TrimLong]{TrimLong()}}, \code{\link[testthat:Reporter]{testthat::Reporter()}}
+\code{\link[=FilterLong]{FilterLong()}}, \code{\link[=RemoveAdapter]{RemoveAdapter()}}, \code{\link[=TrimLong]{TrimLong()}}, \code{\link[=Reporter]{Reporter()}}
 }

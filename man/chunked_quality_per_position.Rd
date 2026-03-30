@@ -4,17 +4,17 @@
 \alias{chunked_quality_per_position}
 \title{Chunked per-position quality statistics}
 \usage{
-chunked_quality_per_position(qs_dna, chunk_size = 1000)
+chunked_quality_per_position(qual_list, read_lengths, chunk_size = 1000)
 }
 \arguments{
-\item{qs_dna}{A \code{Biostrings::QualityScaledDNAStringSet} (or compatible) object
-containing per-base quality scores.}
-
 \item{chunk_size}{Integer scalar giving the number of positions per chunk.}
+
+\item{qs_dna}{A Biostrings::QualityScaledDNAStringSet (or compatible) object
+containing per-base quality scores.}
 }
 \value{
-A \code{data.table} with columns \code{position}, \code{mean}, \code{median}, \code{q25}, and
-\code{q75}.
+A data.table with columns position, mean, median, q25, and
+q75.
 }
 \description{
 Internal helper that computes per-position quality score summaries across a

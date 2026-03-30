@@ -4,7 +4,7 @@
 \alias{make_gc_plot}
 \title{GC content histogram (average per read)}
 \usage{
-make_gc_plot(prGCContent)
+make_gc_plot(prGCContent, file_name)
 }
 \arguments{
 \item{prGCContent}{Numeric vector/list of per-read GC content values.}

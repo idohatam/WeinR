@@ -4,7 +4,7 @@
 \alias{make_quality_vs_length_plot}
 \title{Read quality vs read length (rasterized scatter)}
 \usage{
-make_quality_vs_length_plot(readLengths, meanprQscore)
+make_quality_vs_length_plot(readLengths, meanprQscore, file_name)
 }
 \arguments{
 \item{readLengths}{Numeric vector/list of read lengths.}
