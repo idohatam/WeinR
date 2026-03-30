@@ -116,27 +116,54 @@ If a step results in \code{reads_after == 0L} (as recorded in the step summary i
 remaining steps for that file are skipped and the workflow continues to the next input file.
 }
 \examples{
-\dontrun{
-# qc_obj is assumed to be a LongReadQC object with files + metrics already populated
+tmp_dir <- tempfile("weinr_process_")
+dir.create(tmp_dir)
 
-# 1) Filter only + report
-qc2 <- ProcessReads(qc_obj,
-  filter = TRUE,
-  MinAvgQS = 20,
-  MinLength = 100,
-  MaxNumberNs = 2,
-  outpath = "qc_filtered",
-  render_report = TRUE
+fastq_file <- file.path(tmp_dir, "example.fastq")
+writeLines(c(
+  "@read1",
+  "ACTGACTGACTG",
+  "+",
+  "IIIIIIIIIIII"
+), fastq_file)
+
+qc_obj <- methods::new(
+  "LongReadQC",
+  files = fastq_file,
+  metrics = list("example.fastq" = list()),
+  plots = list(),
+  summary_metrics = data.frame(
+    File = "example.fastq",
+    stringsAsFactors = FALSE
+  ),
+  metadata = list()
 )
 
-# 2) Filter + adapter trimming + end trimming (no report)
-qc3 <- ProcessReads(qc_obj,
+class(qc_obj)
+
+\donttest{
+qc2 <- ProcessReads(
+  qc_obj,
   filter = TRUE,
-  AdapterSeq = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA",
-  Start = 10,
-  End = 10,
+  MinAvgQS = 20,
+  MinLength = 4,
+  MaxNumberNs = 2,
+  outpath = "qc_filtered",
+  render_report = FALSE,
+  force = TRUE,
+  verbose = FALSE
+)
+
+qc3 <- ProcessReads(
+  qc_obj,
+  filter = TRUE,
+  AdapterSeq = "AGAT",
+  Start = 1,
+  End = 1,
   outpath = "qc_full",
-  render_report = FALSE
+  render_report = FALSE,
+  force = TRUE,
+  verbose = FALSE
 )
 }
 

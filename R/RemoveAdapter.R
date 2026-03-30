@@ -153,7 +153,6 @@ RemoveAdapter <- function(qc_obj,
     return(qc_obj)
   }
   
-  # Use subseq() for stability; it works on QualityScaledDNAStringSet too
   endtrimmed <- Biostrings::subseq(reads[keep_endtrim],
                                    start = trim_start[keep_endtrim],
                                    end   = trim_end[keep_endtrim])
@@ -161,15 +160,14 @@ RemoveAdapter <- function(qc_obj,
   # Enforce min length after end trim
   endtrimmed <- endtrimmed[Biostrings::width(endtrimmed) >= MinFragmentLength]
   
-  # internal splitting: loop only over reads with >=2 hits
-  # We do strict internal search (exact) like your old code, but only for candidates.
-  chimeric_frags <- reads[0]   # safe empty
+  # internal splitting: loop only over reads with >=1 hits
+  chimeric_frags <- reads[0]  
   
   if (MinInternalDistance > 0L) {
     
-    # candidate reads: those with >=2 end-match hits in either direction (cheap heuristic)
+    # candidate reads: those with >=1 end-match hits in either direction
     cand <- which(vapply(seq_len(n_reads), function(i) {
-      length(c(m_fwd[[i]], m_rev[[i]])) >= 2L
+      length(c(m_fwd[[i]], m_rev[[i]])) >= 1L
     }, logical(1)))
     
     if (length(cand) > 0L) {
@@ -198,8 +196,6 @@ RemoveAdapter <- function(qc_obj,
         read_name <- names(reads)[i]
         if (is.null(read_name) || is.na(read_name) || !nzchar(read_name))
           read_name <- paste0("read", i)
-        
-        if (isTRUE(verbose)) message("Splitting chimeric read ", read_name)
         
         split_starts <- c(1L, IRanges::end(h_mid)[valid_internal] + 1L)
         split_ends   <- c(IRanges::start(h_mid)[valid_internal] - 1L, L)

@@ -6,13 +6,13 @@ Authors@R: c(
     person("Owen", "Coelho", , "owendorancoelho@gmail.com", role = "aut"),
     person("Nava", "Meadi", , "navameadi@gmail.com", role = "aut"),
     person("Myles", "Taillefer", , "mylestaillefer@gmail.com", role = "aut"),
-    person("Ido", "Hatam", , "ihatam@langara.ca", role = c("ctb", "cre"))
+    person("Ido", "Hatam", , "ihatam@langara.ca", role = c("ctb", "cre"), comment = c(ORID = "0000-0000-0000-0000"))
   )
 Description: Quality control and processing tools for Oxford Nanopore
     long-read sequencing data.
 License: MIT + file LICENSE
 Encoding: UTF-8
-Depends: R (>= 4.4.0)
+Depends: R (>= 4.5.0)
 Imports:
     Biostrings,
     data.table,
@@ -35,7 +35,9 @@ Suggests:
     rmarkdown,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
-biocViews: Sequencing, QualityControl, DataImport
+biocViews: Sequencing, QualityControl, DataImport, LongRead
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Config/testthat/edition: 3
+URL: https://github.com/idohatam/WeinR
+BugReports: https://github.com/idohatam/WeinR/issues

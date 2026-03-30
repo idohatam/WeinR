@@ -16,13 +16,24 @@
 #' @keywords internal
 QualMat <- function(qc_obj, stringset, filename){
   
+  message(sprintf("Beginning metrics calculation for %s\n", filename))
+  
   seqNames <- names(stringset)
   
   #calculate metrics
   
   #LENGTH
+  
   lengths <- Biostrings::width(Biostrings::DNAStringSet(stringset))
   yield <- sum(lengths)
+  
+  #N50
+  decreasinglengths <- sort(lengths, decreasing = TRUE)
+  tmp <- cumsum(decreasinglengths)
+  N50 <- decreasinglengths[which(tmp >= yield/2)[1]]
+  
+  #N90
+  N90 <- decreasinglengths[which(tmp >= yield*0.9)[1]]
   
   #calculate base frequency
   af <- Biostrings::alphabetFrequency(Biostrings::DNAStringSet(stringset))
@@ -45,28 +56,18 @@ QualMat <- function(qc_obj, stringset, filename){
   
   #Quality scores
   #per file
-  qual_list <- lapply(as.character(Biostrings::quality(stringset)), function(q) as.integer(utf8ToInt(q) - 33))
-  
-  avgQscore <- round(mean(unlist(qual_list)),2)
+  message('calculating quality metrics')
+  qual_list <- as.list(as(Biostrings::quality(stringset), "IntegerList"))
   
   #per read
-  perReadQscore <- lapply(qual_list, function(q) mean(q))
+  read_means    <- sapply(qual_list, mean)
+  perReadQscore <- as.list(read_means)
   
+  #per file
+  avgQscore     <- round(weighted.mean(read_means, lengths), 2)
+
   #per position
   q_stats <- chunked_quality_per_position(qual_list,lengths, chunk_size = 1000)
-  
-  rm(qual_list)
-  
-  #calculate summary metrics
-  #N50
-  decreasinglengths <- sort(lengths, decreasing = TRUE)
-  tmp <- cumsum(decreasinglengths)
-  N50 <- decreasinglengths[which(tmp >= yield/2)[1]]
-  
-  #N90
-  decreasinglengths <- sort(lengths, decreasing = TRUE)
-  tmp <- cumsum(decreasinglengths)
-  N90 <- decreasinglengths[which(tmp >= yield*0.9)[1]]
   
   #fill object
   

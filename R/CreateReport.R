@@ -24,21 +24,28 @@
 #'   each input file (also saved to \code{WeinR_Outputs/qc.rds}).
 #'
 #' @examples
-#' \dontrun{
-#' fastq_files <- c(
-#'   "data/Nakazawaea_holstii.fastq",
-#'   "data/Nakazawaea_populi.fastq"
-#' )
+#' # Create a temporary directory with a small dummy FASTQ file
+#' tmp_dir <- tempfile("weinr_example_")
+#' dir.create(tmp_dir)
 #'
+#' dummy_fastq <- file.path(tmp_dir, "example.fastq")
+#'
+#' writeLines(c(
+#'   "@read1",
+#'   "ACTG",
+#'   "+",
+#'   "IIII"
+#' ), dummy_fastq)
+#'
+#' # Run CreateReport in lightweight mode (no HTML rendering)
 #' qc_obj <- CreateReport(
-#'   files = fastq_files,
-#'   report_name = "Fully_linked_test",
-#'   render_report = TRUE,
+#'   files = tmp_dir,
+#'   report_name = "example_report",
+#'   render_report = FALSE,
 #'   force = TRUE
 #' )
 #'
-#' qc_obj2 <- readRDS(file.path(getwd(), "WeinR_Outputs", "qc.rds"))
-#' }
+#' qc_obj
 #'
 #' @export
 CreateReport <- function(
@@ -105,6 +112,7 @@ CreateReport <- function(
       {
         qc_obj <- QualMat(qc_obj, qsds, fname)
         
+        message(sprintf("Generating Plots for %s\n", fname))
         qc_obj <- QualPlot(
           qc_obj,
           filename  = fname,

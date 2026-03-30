@@ -13,18 +13,21 @@
 #'
 #' @keywords internal
 chunked_quality_per_position <- function(qual_list, read_lengths, chunk_size = 1000) {
-  
-  #read_lengths <- Biostrings::width(qs_dna)
+  message('calculating per-position q-score')
   max_len <- max(read_lengths)
   
   # Precompute order of reads by length for faster validity lookups
   ord <- order(read_lengths)
   
-  chunk_stats <- vector("list", ceiling(max_len / chunk_size))
+  n_chunks <- ceiling(max_len / chunk_size)
+  
+  chunk_stats <- vector("list", n_chunks)
+  
   chunk_i <- 1
   
+  pb <- txtProgressBar(min = 0, max = n_chunks, style = 3)
+  
   for (start_pos in seq(1, max_len, by = chunk_size)) {
-
     end_pos <- min(start_pos + chunk_size - 1, max_len)
     chunk_len <- end_pos - start_pos + 1
     
@@ -37,7 +40,7 @@ chunked_quality_per_position <- function(qual_list, read_lengths, chunk_size = 1
     
     valid_idx <- ord[first_valid:length(ord)]
     n_valid <- length(valid_idx)
-    
+
     # Preallocate
     cm <- matrix(NA_real_, nrow = n_valid, ncol = chunk_len)
     
@@ -69,8 +72,9 @@ chunked_quality_per_position <- function(qual_list, read_lengths, chunk_size = 1
       q75      = q75
     )
     
+    setTxtProgressBar(pb, chunk_i)
     chunk_i <- chunk_i + 1
   }
-  
+  close(pb)
   data.table::rbindlist(chunk_stats, use.names = TRUE, fill = TRUE)
 }

@@ -7,8 +7,12 @@
 \S4method{show}{LongReadQC}(object)
 }
 \arguments{
-\item{object}{A LongReadQC object}
+\item{object}{A \code{LongReadQC} object.}
+}
+\value{
+Invisibly returns the input \code{LongReadQC} object.
 }
 \description{
-Show method for LongReadQC objects
+Displays a concise summary of a \code{LongReadQC} object, including the
+number of processed files and whether metrics and plots are available.
 }

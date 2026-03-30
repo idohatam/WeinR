@@ -28,8 +28,8 @@ CheckFile <- function(filePath)
   if (!nzchar(trimws(filePath))) stop("File path is empty.", call. = FALSE)
   
   # check if file exists, if not stop with an error message
-  if (!file.exists(filePath)) stop(paste("File does not exist: ", filePath), call. = FALSE)
-  if (dir.exists(filePath)) stop(paste("Expected a file path, got a directory: ", filePath), call. = FALSE)
+  if (!file.exists(filePath)) stop("File does not exist: ", filePath, call. = FALSE)
+  if (dir.exists(filePath)) stop("Expected a file path, got a directory: ", filePath, call. = FALSE)
   
   # large file warning (edge case)
   sz <- file.info(filePath)$size

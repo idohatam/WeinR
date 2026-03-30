@@ -41,7 +41,7 @@ WriteReadOutputs <- function(reads,
   if (is.null(ids) || length(ids) != n_reads || anyNA(ids) || any(!nzchar(ids))) {
     ids <- paste0("read_", seq_len(n_reads))
   }
-  ids <- gsub("[\\r\\n\\t]+", "_", ids)
+  ids <- gsub("[[:cntrl:]]+", "_", ids)
   
   out_paths <- character(0)
   
@@ -83,7 +83,7 @@ WriteReadOutputs <- function(reads,
       
       # QNAME must not contain whitespace: keep only first token
       qname <- sub("\\s.*$", "", ids)
-      qname <- gsub("[\\t\\r\\n ]+", "_", qname)
+      qname <- gsub("[[:cntrl:] ]+", "_", qname)
       
       seq  <- as.character(Biostrings::DNAStringSet(reads))
       qual <- as.character(Biostrings::quality(reads))
