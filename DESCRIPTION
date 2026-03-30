@@ -12,7 +12,7 @@ Description: Quality control and processing tools for Oxford Nanopore
     long-read sequencing data.
 License: MIT + file LICENSE
 Encoding: UTF-8
-Depends: R (>= 4.5.0)
+Depends: R (>= 4.4.0)
 Imports:
     Biostrings,
     data.table,
