@@ -16,3 +16,5 @@ inst/.DS_Store
 
 .gitignore
 inst/doc
+vignettes/*.html
+inst/extdata/*.fastq.gz

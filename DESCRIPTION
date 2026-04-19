@@ -6,13 +6,13 @@ Authors@R: c(
     person("Owen", "Coelho", , "owendorancoelho@gmail.com", role = "aut"),
     person("Nava", "Meadi", , "navameadi@gmail.com", role = "aut"),
     person("Myles", "Taillefer", , "mylestaillefer@gmail.com", role = "aut"),
-    person("Ido", "Hatam", , "ihatam@langara.ca", role = c("ctb", "cre"), comment = c(ORID = "0000-0000-0000-0000"))
+    person("Ido", "Hatam", , "ihatam@langara.ca", role = c("ctb", "cre"), comment = c(ORCID = "0000-0000-0000-0000"))
   )
 Description: Quality control and processing tools for Oxford Nanopore
     long-read sequencing data.
 License: MIT + file LICENSE
 Encoding: UTF-8
-Depends: R (>= 4.4.0)
+Depends: R (>= 4.3.0)
 Imports:
     Biostrings,
     data.table,
@@ -30,7 +30,8 @@ Imports:
     utils,
     methods,
     ShortRead
-Suggests: 
+Suggests:
+    BiocStyle,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)

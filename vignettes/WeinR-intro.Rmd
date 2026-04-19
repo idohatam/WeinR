@@ -1,0 +1,402 @@
+---
+title: "WeinR: Long-Read Sequencing Quality Control and Processing"
+author:
+  - name: Sarah Bowker
+  - name: Owen Coelho
+  - name: Nava Meadi
+  - name: Myles Taillefer
+  - name: Ido Hatam
+    email: ihatam@langara.ca
+    affiliation: Langara College
+date: "`r BiocStyle::doc_date()`"
+package: "`r BiocStyle::pkg_ver('WeinR')`"
+output:
+  BiocStyle::html_document:
+    toc_float: true
+vignette: >
+  %\VignetteIndexEntry{WeinR: Long-Read Sequencing Quality Control and Processing}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse  = TRUE,
+  comment   = "#>",
+  fig.align = "center"
+)
+```
+
+# Introduction
+
+`r Biocpkg("WeinR")` is an R/Bioconductor package for quality control (QC) and
+preprocessing of Oxford Nanopore Technology (ONT) long-read sequencing data.
+It accepts FASTQ, compressed FASTQ (`.fastq.gz`), and BAM input files (BAM
+files must contain base quality scores in the `QUAL` field).
+
+WeinR produces:
+
+- Per-read and file-level QC metrics: read lengths, Phred quality scores, GC
+  content, N counts, N50, N90, and total yield
+- Five publication-quality PNG plots per file: length distribution, quality
+  distribution, GC content distribution, quality-vs-length scatter, and
+  per-position quality profile
+- Interactive HTML reports with searchable summary tables and embedded plots
+- Optionally, processed reads after filtering, adapter trimming, and/or end
+  trimming
+
+## Comparison with Similar Tools
+
+Several tools address long-read QC, but most operate outside the R/Bioconductor
+ecosystem or cover a narrower scope:
+
+- **NanoStat** and **NanoPlot** are widely used Python command-line tools.
+  They require a separate Python environment and produce outputs that are not
+  directly interoperable with Bioconductor objects.
+- **MinIONQC** is an R package focused on read-length and quality summaries,
+  but does not support adapter trimming, end trimming, or chimera detection.
+- **`r Biocpkg("Rfastp")`** provides adapter trimming and QC primarily for
+  short reads; its long-read support does not include ONT-specific metrics
+  such as per-position quality profiles or N50/N90.
+
+WeinR covers the full ONT QC-and-processing pipeline within a single
+R/Bioconductor package, returning results in a consistent S4 object that
+integrates directly with downstream Bioconductor workflows.
+
+## Package Workflow
+
+The standard WeinR workflow has two phases:
+
+1. **QC phase** — `CreateReport()` reads raw input, computes all metrics,
+   generates plots, and optionally renders an HTML report.
+
+2. **Processing phase** *(optional)* — `ProcessReads()` takes the `LongReadQC`
+   object returned by `CreateReport()` and applies configurable filtering,
+   adapter trimming, and/or end trimming.
+
+All results accumulate in a single `LongReadQC` S4 object that is returned
+from each function and saved to disk.
+
+# Installation
+
+`WeinR` can be installed from Bioconductor using `r CRANpkg("BiocManager")`:
+
+```{r install, eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("WeinR")
+```
+
+To install the development version directly from GitHub:
+
+```{r install-gh, eval=FALSE}
+BiocManager::install("idohatam/WeinR")
+```
+
+Once installed, load the package:
+
+```{r load}
+library(WeinR)
+```
+
+# Example Data
+
+This vignette uses a small FASTQ file bundled with the package under
+`inst/extdata/`. It contains 300 synthetic reads with ONT-like properties:
+a right-skewed length distribution (median ~3.9 kb, range 424--12,000 bp),
+per-read GC content centred near 50%, and a 3' quality drop-off typical of
+ONT chemistry (mean Q ~14). Using `system.file()` to locate bundled data
+avoids any external downloads and ensures the vignette is fully self-contained.
+
+```{r example-data}
+fastq_file <- system.file("extdata", "sample.fastq", package = "WeinR")
+if (!nzchar(fastq_file))
+    stop("'sample.fastq' was not found in the WeinR package installation.")
+```
+
+# Basic Workflow: `CreateReport()`
+
+`CreateReport()` is the primary entry point. Provide either a **vector of file
+paths** or a **directory** (WeinR will discover `.fastq`, `.fastq.gz`, and
+`.bam` files automatically). The function returns a `LongReadQC` object and
+writes outputs under `WeinR_Outputs/` in the current working directory.
+
+```{r run-qc}
+qc_obj <- CreateReport(
+  files         = fastq_file,
+  MinNumReads   = 1L,
+  report_name   = "example_qc",
+  render_report = FALSE,   # set TRUE to also produce an HTML report
+  force         = TRUE     # overwrite any existing outputs from prior runs
+)
+
+qc_obj
+```
+
+## The `LongReadQC` Object
+
+All results are stored in the returned `LongReadQC` S4 object. The five slots
+and their contents are:
+
+| Slot | Contents |
+|------|----------|
+| `@files` | Character vector of input file paths processed |
+| `@metrics` | Named list of per-read metric vectors/data frames, keyed by filename |
+| `@plots` | Named list of saved plot file paths, keyed by filename |
+| `@summary_metrics` | Data frame of file-level summary statistics |
+| `@metadata` | List of processing summaries populated by `ProcessReads()` |
+
+```{r inspect-files}
+basename(qc_obj@files)
+```
+
+The per-file metrics available for the example file:
+
+```{r inspect-metrics}
+fname <- basename(fastq_file)
+names(qc_obj@metrics[[fname]])
+```
+
+# Output Walkthrough
+
+## Summary Metrics Table
+
+`@summary_metrics` provides one row per input file:
+
+```{r summary-table}
+qc_obj@summary_metrics
+```
+
+| Column | Description |
+|--------|-------------|
+| **File** | Input filename |
+| **Read Count** | Total number of reads in the file |
+| **Yield (bp)** | Total bases sequenced across all reads |
+| **N50** | Read length at which 50% of all sequenced bases are in reads of this length or longer |
+| **N90** | Same as N50 but for 90% of bases; always ≤ N50 |
+| **Average Per Read Q Score** | Mean Phred quality score averaged across all reads |
+| **N Count** | Total number of ambiguous (`N`) bases across all reads |
+
+## Per-Read Metrics
+
+The `@metrics` slot stores the raw per-read vectors that feed the plots:
+
+```{r per-read-metrics}
+m <- qc_obj@metrics[[fname]]
+
+summary(m$readLengths)          # read lengths (bp)
+summary(unlist(m$meanprQscore)) # mean Phred Q-score per read
+summary(unlist(m$prGCcontent))  # per-read GC content (fraction)
+```
+
+Per-position quality is stored as a data frame with one row per position
+window and columns `position` (bp), `mean`, `median`, `q25`, and `q75`:
+
+```{r per-pos-preview}
+head(m$perPosQuality)
+```
+
+## Output Folder Structure
+
+`CreateReport()` writes all outputs under `WeinR_Outputs/` in the working
+directory, inside a timestamped run folder:
+
+```
+WeinR_Outputs/
+└── run_YYYY-MM-DD_HHMMSS/
+    ├── metrics/
+    │   ├── sample.fastq/
+    │   │   ├── readLengths.csv
+    │   │   ├── meanprQscore.csv
+    │   │   ├── prGCcontent.csv
+    │   │   ├── Ncount.csv
+    │   │   └── perPosQuality.csv
+    │   └── example_qc_summary_metrics.csv
+    ├── plots/
+    │   └── sample/
+    │       ├── length_hist.png
+    │       ├── quality_hist.png
+    │       ├── gc_hist.png
+    │       ├── q_vs_length.png
+    │       └── per_pos_q.png
+    ├── reports/
+    │   ├── example_qc.Rmd
+    │   └── example_qc.html   # only produced when render_report = TRUE
+    └── objects/
+        └── qc.rds            # saved LongReadQC object
+```
+
+All CSV files can be imported directly for downstream analysis. To reload the
+`LongReadQC` object in a future R session, use `readRDS()` with the path
+printed by `CreateReport()` at runtime.
+
+## Plots
+
+Five PNG plots are generated per file and their paths stored in `@plots`.
+The sub-sections below describe each plot and what to look for in real data.
+
+### Read Length Distribution
+
+A histogram of per-read lengths on a log~10~ x-axis. In a typical ONT run,
+the bulk of reads will fall between 1 and 20 kb, with a right-skewed tail.
+Very short reads concentrated at the left of the distribution may indicate
+pore blockage, degraded input, or adapter dimers.
+
+```{r plot-length, echo=FALSE, out.width="70%"}
+knitr::include_graphics(qc_obj@plots[[fname]][["length_hist"]])
+```
+
+### Average Q-Score Distribution
+
+A histogram of per-read mean Phred quality scores, with vertical lines for
+the mean (dashed red) and median (solid blue). Current ONT chemistry typically
+produces reads centred around Q15--Q20. A bimodal distribution can indicate
+two populations with different pore states or chemistry.
+
+```{r plot-quality, echo=FALSE, out.width="70%"}
+knitr::include_graphics(qc_obj@plots[[fname]][["quality_hist"]])
+```
+
+### GC Content Distribution
+
+A histogram of per-read GC fraction. The mode should correspond to the
+expected GC content of the sequenced organism. Broad or heavily skewed
+distributions may indicate contamination or adapter carry-through.
+
+```{r plot-gc, echo=FALSE, out.width="70%"}
+knitr::include_graphics(qc_obj@plots[[fname]][["gc_hist"]])
+```
+
+### Quality vs Read Length
+
+A scatter plot of per-read mean Q-score against read length (log~10~ x-axis).
+Points are rasterised for performance with large datasets. In ONT data, longer
+reads often show modestly lower quality due to signal drift over extended pore
+occupancy.
+
+```{r plot-qvl, echo=FALSE, out.width="70%"}
+knitr::include_graphics(qc_obj@plots[[fname]][["q_vs_length"]])
+```
+
+### Per-Position Quality Profile
+
+A smoothed profile of Phred quality along the read coordinate. The solid line
+is the median Q-score; the ribbon spans Q25--Q75. In real ONT runs, this plot
+typically shows a sharp quality spike at the 5' end followed by a rapid drop,
+a noisy but stable middle region, and a pronounced decline toward the 3' end.
+A sharp dip near the 5' end can suggest adapter contamination or a poor run
+start. The profile below is derived from the bundled synthetic dataset (reads
+up to 12,000 bp); real ONT data with longer reads will produce a richer
+profile with a more pronounced 5' spike and sharper 3' decline.
+
+```{r plot-perpos, echo=FALSE, out.width="70%"}
+knitr::include_graphics(qc_obj@plots[[fname]][["per_pos_q"]])
+```
+
+# Read Processing: `ProcessReads()`
+
+After reviewing the QC output, use `ProcessReads()` to prepare reads for
+downstream analysis. It takes the `LongReadQC` object from `CreateReport()`
+and applies up to three steps in a fixed order:
+
+1. **Quality / length / N filtering** (`filter = TRUE`)
+2. **Adapter trimming** (`AdapterSeq = "..."`)
+3. **Fixed end trimming** (`Start = n`, `End = n`)
+
+Any combination of steps can be enabled; unused steps are skipped. Processed
+reads are written to `WeinR_Outputs/Processed_Files/`.
+
+## Filtering Only
+
+```{r process-filter}
+qc_filtered <- ProcessReads(
+  qc_obj,
+  filter      = TRUE,
+  MinAvgQS    = 10,    # drop reads with mean Q-score < 10
+  MinLength   = 150,   # drop reads shorter than 150 bp
+  MaxNumberNs = 2,     # drop reads with > 2 N bases
+  outpath       = "example_filtered",
+  title         = "Filtered QC",
+  render_report = FALSE,
+  force         = TRUE,
+  verbose       = FALSE
+)
+
+qc_filtered
+```
+
+## Full Processing Workflow
+
+```{r process-full}
+qc_processed <- ProcessReads(
+  qc_obj,
+
+  # Step 1: filtering
+  filter      = TRUE,
+  MinAvgQS    = 10,
+  MinLength   = 150,
+  MaxNumberNs = 2,
+
+  # Step 2: adapter trimming
+  # Replace with the adapter sequence for your sequencing kit
+  AdapterSeq          = "AGATCGG",
+  MaxMismatchEnd      = 3,
+  MinOverlapEnd       = 20,
+  MinInternalDistance = 100,
+  MinFragmentLength   = 150,
+
+  # Step 3: end trimming
+  Start = 2,
+  End   = 2,
+
+  OutFileType       = "fastq",
+  FinalSuffix       = "processed",
+  KeepIntermediates = FALSE,
+
+  outpath       = "example_processed",
+  title         = "Full Processing Workflow",
+  render_report = FALSE,
+  force         = TRUE,
+  verbose       = FALSE
+)
+
+qc_processed
+```
+
+## Inspecting Processing Metadata
+
+`ProcessReads()` records reads-before and reads-after counts for every
+step in `@metadata`:
+
+```{r metadata}
+meta <- qc_processed@metadata[[fname]]
+names(meta)
+
+meta$filter_summary[c("reads_before", "reads_after")]
+```
+
+## `ProcessReads()` Parameter Reference
+
+| Group | Parameter | Default | Description |
+|-------|-----------|---------|-------------|
+| **Filtering** | `filter` | `FALSE` | Enable quality/length/N filtering |
+| | `MinAvgQS` | `20` | Minimum mean Phred Q-score per read |
+| | `MinLength` | `200` | Minimum read length (bp) |
+| | `MaxNumberNs` | `2` | Maximum ambiguous bases per read |
+| **Adapter trimming** | `AdapterSeq` | `NULL` | Adapter sequence; `NULL` skips this step |
+| | `MaxMismatchEnd` | `3` | Allowed mismatches for end-adapter matching |
+| | `MinOverlapEnd` | `20` | Distance from read end for end-adapter classification |
+| | `MinInternalDistance` | `100` | Distance from ends for chimera detection |
+| | `MinFragmentLength` | `200` | Minimum fragment length after chimera splitting |
+| **End trimming** | `Start` | `NULL` | Bases to remove from 5' end; `NULL` skips |
+| | `End` | `NULL` | Bases to remove from 3' end; `NULL` skips |
+| **Output** | `OutFileType` | `"fastq"` | One or more of `"fastq"`, `"bam"`, `"fasta"` |
+| | `FinalSuffix` | `"processed"` | Suffix appended to output filenames |
+| | `KeepIntermediates` | `FALSE` | Retain per-step intermediate FASTQ files |
+
+# Session Info
+
+```{r session-info}
+sessionInfo()
+```
