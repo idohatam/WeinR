@@ -1,4 +1,4 @@
-# TEST COMMIT
+
 
 #' Run QC on input files and (optionally) generate a report
 #'
