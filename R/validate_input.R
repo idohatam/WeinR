@@ -33,7 +33,7 @@ validate_input <- function(files, minimum_reads) {
       tryCatch(FastqCheck(file, n_records = 100L),
                error = function(e) stop("FASTQ check failed (corrupted/malformed): ", conditionMessage(e), call. = FALSE))
     } else if (file_type == "bam") {
-      bf <- Rsamtools::BamFile(file)
+      bf <- Rsamtools::BamFile(file, yieldSize = 1000)
       tryCatch(
         bam <- Rsamtools::scanBam(bf)[[1]],
         error = function(e) {
