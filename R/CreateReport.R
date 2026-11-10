@@ -1,3 +1,5 @@
+# TEST COMMIT
+
 #' Run QC on input files and (optionally) generate a report
 #'
 #' Runs quality control on one or more long-read FASTQ/BAM files, producing summary
