@@ -1,4 +1,5 @@
-
+test <- "hello"
+print(test)
 
 process_file_report <- function(filename, qc_obj) {
   
