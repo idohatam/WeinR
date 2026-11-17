@@ -104,8 +104,35 @@ QualPlot <- function(qc_obj,
       make_quality_vs_length_plot(metrics$readLengths, metrics$meanprQscore, file_name = filename),
       "q_vs_length"
     ),
-    per_pos_q    = save_png(make_per_position_plot(metrics$perPosQuality, file_name = filename), "per_pos_q")
+    #per_pos_q    = save_png(make_base_frequency_plot(metrics$perPosQuality, file_name = filename), "per_pos_q"),
+    base_freq = save_png(
+      make_base_frequency_plot(process_base_frequencies(filename), file_name = filename),
+      "base_freq"
+    ),
+    polyA_hist   = save_png(make_polyA_plot(metrics$polyALengths, file_name = filename), "polyA_hist"),
+    mod_density  = save_png(make_mod_density_plot(metrics$modDensity, file_name = filename), "mod_density")
+    #avg_ML = save_png(make_modification_probability_plot(metrics$avgML, filename), "avg_ML")
+    #avg_ML       = save_png(make_modification_probability_plot(metrics$avgML, file_name = filename), "avg_ML")
   )
+  
+  # ---- Modification probability plots (BAM only; one per modification type) ----
+  ml_paths <- list()
+  if (grepl("\\.bam$", filename, ignore.case = TRUE)) {
+    mod_data <- process_modification_probabilities(filename)
+    
+    for (mod_type in names(mod_data$read_means)) {
+      read_means <- mod_data$read_means[[mod_type]]
+      if (length(read_means) == 0L) next   # skip types not present in this BAM
+      
+      stem <- paste0("ML_", mod_type)
+      ml_paths[[stem]] <- save_png(
+        make_modification_probability_plot(read_means, mod_type),
+        stem
+      )
+    }
+  }
+  
+  out_paths <- c(out_paths, ml_paths)
   
   qc_obj@plots[[filename]] <- out_paths
   
