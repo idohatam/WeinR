@@ -27,5 +27,8 @@ make_output_folders <- function(qc_obj) {
   reports_dir <- file.path(base_dir, "reports")
   dir.create(reports_dir, recursive = TRUE, showWarnings = FALSE)
   
+  processed_dir <- file.path(WeinRdir, "Processed_Files")
+  dir.create(processed_dir, recursive = TRUE, showWarnings = FALSE)
+  
   base_dir
 }
