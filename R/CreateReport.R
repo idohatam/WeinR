@@ -3,6 +3,7 @@ library("ShortRead")
 library("stringr")
 library("data.table")
 
+#' @export
 create_report <- function(
     files,
     minimum_reads = 1L,
