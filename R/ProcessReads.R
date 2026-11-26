@@ -1,6 +1,6 @@
 
 #' @export
-process_reads <- function(qc_obj,
+ProcessReads <- function(qc_obj,
                           filter = FALSE,
                           MinAvgQS = 5,
                           MinLength = 100,

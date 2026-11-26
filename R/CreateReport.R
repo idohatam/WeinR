@@ -4,7 +4,7 @@ library("stringr")
 library("data.table")
 
 #' @export
-create_report <- function(
+CreateReport <- function(
     files,
     minimum_reads = 1L,
     report_name,
