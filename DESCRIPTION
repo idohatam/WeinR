@@ -31,6 +31,8 @@ Imports:
     methods,
     ShortRead,
     Rcpp
+LinkingTo:
+    Rcpp
 Suggests:
     BiocStyle,
     knitr,
