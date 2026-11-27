@@ -42,7 +42,7 @@ process_file_filter <- function(filepath,
   
   if (grepl("\\.bam$", filepath, ignore.case = TRUE)) {
     bam_file <- filepath
-    bam_stream <- open(BamFile(bam_file, yieldSize = CHUNK_SIZE))
+    bam_stream <- open(Rsamtools::BamFile(bam_file, yieldSize = CHUNK_SIZE))
     isBAM <- TRUE
     temp_sam <- paste0(base_dir, "/Processed_Files/", filename, ".sam")
     writeLines(c(
@@ -51,7 +51,7 @@ process_file_filter <- function(filepath,
     ), con = temp_sam)
   } else {
     fastq_file <- filepath
-    fastq_stream <- FastqStreamer(fastq_file, n = CHUNK_SIZE)
+    fastq_stream <- ShortRead::FastqStreamer(fastq_file, n = CHUNK_SIZE)
     isBAM <- FALSE
   }
   
@@ -64,13 +64,13 @@ process_file_filter <- function(filepath,
   repeat {
     
     if(isBAM) {
-      chunk <- scanBam(bam_stream)
+      chunk <- Rsamtools::scanBam(bam_stream)
       if(length(chunk[[1]][[1]]) == 0) {
         break
       }
       chunk_qsds <- QualityScaledDNAStringSet(chunk[[1]]$seq, chunk[[1]]$qual)
     } else {
-      chunk <- yield(fastq_stream)
+      chunk <- ShortRead::yield(fastq_stream)
       if(length(chunk) == 0) {
         break
       }
