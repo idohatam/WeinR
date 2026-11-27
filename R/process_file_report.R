@@ -2,7 +2,7 @@
 
 process_file_report <- function(filename, qc_obj) {
   
-  Rcpp::sourceCpp("./C/weinr.cpp")
+  Rcpp::sourceCpp("./src/weinr.cpp")
   
   CHUNK_SIZE <- 10000L
   MAX_WIDTH <- 2000000L
