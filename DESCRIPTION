@@ -29,7 +29,8 @@ Imports:
     stats,
     utils,
     methods,
-    ShortRead
+    ShortRead,
+    Rcpp
 Suggests:
     BiocStyle,
     knitr,
